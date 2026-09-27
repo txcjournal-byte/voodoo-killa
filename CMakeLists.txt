@@ -55,6 +55,12 @@ set(VK_PLUGIN_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.h)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    set(VK_WARNING_TWEAKS -Wall -Wextra -Wshadow -Wno-unused-parameter -Wno-missing-field-initializers)
+elseif(MSVC)
+    set(VK_WARNING_TWEAKS /W4 /wd4100)
+endif()
+
 # ---------------------------------------------------------------------------
 # Plugin
 # ---------------------------------------------------------------------------
@@ -82,6 +88,7 @@ juce_add_plugin(VoodooKilla
 
 target_sources(VoodooKilla PRIVATE ${VK_PLUGIN_SOURCES} ${VK_ENGINE_SOURCES} ${VK_UI_SOURCES})
 target_include_directories(VoodooKilla PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Source)
+target_compile_options(VoodooKilla PRIVATE ${VK_WARNING_TWEAKS})
 
 target_compile_definitions(VoodooKilla PUBLIC
     JUCE_WEB_BROWSER=0
@@ -96,8 +103,7 @@ target_link_libraries(VoodooKilla
         juce::juce_dsp
     PUBLIC
         juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags)
+        juce::juce_recommended_lto_flags)
 
 # ---------------------------------------------------------------------------
 # Tests (engine only, no plugin wrapper)
@@ -107,6 +113,7 @@ if(VK_BUILD_TESTS)
     file(GLOB VK_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Tests/*.cpp)
     target_sources(VoodooKillaTests PRIVATE ${VK_TEST_SOURCES} ${VK_ENGINE_SOURCES})
     target_include_directories(VoodooKillaTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Source)
+    target_compile_options(VoodooKillaTests PRIVATE ${VK_WARNING_TWEAKS})
     target_compile_definitions(VoodooKillaTests PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_UNIT_TESTS=0)
     target_link_libraries(VoodooKillaTests
@@ -115,8 +122,7 @@ if(VK_BUILD_TESTS)
             juce::juce_audio_basics
             juce::juce_dsp
         PUBLIC
-            juce::juce_recommended_config_flags
-            juce::juce_recommended_warning_flags)
+            juce::juce_recommended_config_flags)
 
     enable_testing()
     add_test(NAME VoodooKillaTests COMMAND VoodooKillaTests)
