@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build plugin + tests
+        run: cmake --build build --config Release --parallel --target VoodooKilla_VST3 VoodooKilla_Standalone VoodooKillaTests
+
+      - name: Run tests
+        run: build\VoodooKillaTests_artefacts\Release\VoodooKillaTests.exe
+        shell: cmd
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item -Recurse "build/VoodooKilla_artefacts/Release/VST3/Voodoo Killa.vst3" dist/
+          Copy-Item "build/VoodooKilla_artefacts/Release/Standalone/Voodoo Killa.exe" dist/
+          Copy-Item README.md dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoodooKilla-Windows
+          path: dist
