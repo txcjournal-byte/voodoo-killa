@@ -127,3 +127,21 @@ if(VK_BUILD_TESTS)
     enable_testing()
     add_test(NAME VoodooKillaTests COMMAND VoodooKillaTests)
 endif()
+
+# ---------------------------------------------------------------------------
+# UI snapshot tool (not built by default): renders the editor to a PNG for design checks.
+#   cmake --build build --target VoodooKillaSnapshot && ./VoodooKillaSnapshot out.png [scale]
+# ---------------------------------------------------------------------------
+juce_add_console_app(VoodooKillaSnapshot PRODUCT_NAME "VoodooKillaSnapshot")
+set_target_properties(VoodooKillaSnapshot PROPERTIES EXCLUDE_FROM_ALL TRUE)
+target_sources(VoodooKillaSnapshot PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Tools/Snapshot.cpp
+    ${VK_PLUGIN_SOURCES} ${VK_ENGINE_SOURCES} ${VK_UI_SOURCES})
+target_include_directories(VoodooKillaSnapshot PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Source)
+target_compile_options(VoodooKillaSnapshot PRIVATE ${VK_WARNING_TWEAKS})
+target_compile_definitions(VoodooKillaSnapshot PRIVATE
+    JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1
+    JucePlugin_Name="Voodoo Killa" JucePlugin_VersionString="${PROJECT_VERSION}")
+target_link_libraries(VoodooKillaSnapshot PRIVATE
+    VoodooKillaData juce::juce_audio_utils juce::juce_dsp
+    juce::juce_recommended_config_flags)

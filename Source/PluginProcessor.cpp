@@ -296,7 +296,9 @@ void VoodooKillaAudioProcessor::setParamValue (const char* id, float plainValue)
 
 void VoodooKillaAudioProcessor::applyPresetDefaults (const vk::PresetInfo& p)
 {
-    setParamValue (ParamIDs::trigger, (float) (int) p.data.trigger);
+    // Hold is a performance mode: once chosen it stays while cards are auditioned
+    if ((int) pTrigger->load() != (int) vk::TriggerMode::hold)
+        setParamValue (ParamIDs::trigger, (float) (int) p.data.trigger);
     if (p.data.duck.amount > 0.0f)
         setParamValue (ParamIDs::duck, 1.0f);
 }
@@ -428,9 +430,7 @@ void VoodooKillaAudioProcessor::timerCallback()
             slotA.info = *p;
             slotB = SlotState {};
             lastMorphSideB = false;
-            // keep the user's performance mode when playing cards in Hold
-            if ((int) pTrigger->load() != (int) vk::TriggerMode::hold)
-                applyPresetDefaults (*p);
+            applyPresetDefaults (*p);
             ++selectionVersion;
         }
     }
