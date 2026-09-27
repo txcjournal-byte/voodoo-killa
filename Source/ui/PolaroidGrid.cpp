@@ -37,14 +37,14 @@ void PolaroidCard::setPulse (float amount)
 
 juce::Rectangle<float> PolaroidCard::frameBounds() const
 {
-    return getLocalBounds().toFloat().reduced (4.0f, 6.0f);
+    return getLocalBounds().toFloat().reduced (4.0f, 3.0f);
 }
 
 juce::Rectangle<float> PolaroidCard::photoBounds() const
 {
     const auto f = frameBounds();
-    const float m = 8.0f;
-    return { f.getX() + m, f.getY() + m, f.getWidth() - 2.0f * m, f.getHeight() * 0.64f };
+    const float m = 7.0f;
+    return { f.getX() + m, f.getY() + m, f.getWidth() - 2.0f * m, f.getHeight() * 0.685f };
 }
 
 juce::Point<float> PolaroidCard::getPinPosition() const
@@ -56,7 +56,7 @@ juce::Point<float> PolaroidCard::getPinPosition() const
 void PolaroidCard::paint (juce::Graphics& g)
 {
     const auto f = frameBounds();
-    Theme::drawPaper (g, f, (uint32_t) (card * 977 + 13), false, Colours::paper.brighter (0.05f));
+    Theme::drawPaper (g, f, (uint32_t) (card * 977 + 13), false, Colours::paper.brighter (0.12f));
 
     // photo
     const auto ph = photoBounds();
@@ -81,7 +81,7 @@ void PolaroidCard::paint (juce::Graphics& g)
     const auto textArea = f.withTop (ph.getBottom() + 2.0f).reduced (6.0f, 0.0f);
     const bool red = slot == 2;
     g.setColour (red ? Colours::red : Colours::ink);
-    g.setFont (Theme::marker (19.0f));
+    g.setFont (Theme::marker (21.0f));
     g.drawFittedText (name.toUpperCase(), textArea.withHeight (textArea.getHeight() * 0.58f).toNearestInt(),
                       juce::Justification::centredBottom, 1, 0.75f);
     g.setColour (Colours::ink.withAlpha (0.85f));

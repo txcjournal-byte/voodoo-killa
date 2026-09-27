@@ -67,11 +67,11 @@ void KillPad::paint (juce::Graphics& g)
         juce::Graphics gg (gridCache);
         gg.addTransform (juce::AffineTransform::scale (scale));
         const float w = a.getWidth(), h = a.getHeight();
-        for (int i = 0; i <= 40; ++i)
+        for (int i = 0; i <= 50; ++i)
         {
             const bool major = i % 5 == 0;
             gg.setColour (Colours::ink.withAlpha (major ? 0.22f : 0.08f));
-            const float x = w * (float) i / 40.0f, y = h * (float) i / 40.0f;
+            const float x = w * (float) i / 50.0f, y = h * (float) i / 50.0f;
             gg.drawLine (x, 0.0f, x, h, major ? 1.0f : 0.6f);
             gg.drawLine (0.0f, y, w, y, major ? 1.0f : 0.6f);
         }

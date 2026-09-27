@@ -8,9 +8,9 @@ namespace Colours
 {
     inline const juce::Colour background { 0xff0c0c0c };
     inline const juce::Colour ink        { 0xff121212 };
-    inline const juce::Colour paper      { 0xffe6e2d9 };
-    inline const juce::Colour paperDark  { 0xffcbc6bb };
-    inline const juce::Colour tape       { 0xffd8d3c6 };
+    inline const juce::Colour paper      { 0xffd3ccc2 };
+    inline const juce::Colour paperDark  { 0xffbdb5aa };
+    inline const juce::Colour tape       { 0xffc6beb3 };
     inline const juce::Colour grey       { 0xff8c8c8c };
     inline const juce::Colour greyDark   { 0xff4a4a4a };
     inline const juce::Colour red        { 0xffff2e3e };

@@ -161,8 +161,8 @@ void RockerSwitch::paint (juce::Graphics& g)
 
     // rocker
     auto rocker = r.reduced (5.0f);
-    juce::ColourGradient grad (on ? Colours::red.brighter (0.25f) : juce::Colour (0xff5a1a1f), rocker.getX(), rocker.getY(),
-                               on ? Colours::redDark : juce::Colour (0xff2a0c0f), rocker.getX(), rocker.getBottom(), false);
+    juce::ColourGradient grad (on ? Colours::red.brighter (0.2f) : juce::Colour (0xffc4303a), rocker.getX(), rocker.getY(),
+                               on ? Colours::redDark : juce::Colour (0xff7a1820), rocker.getX(), rocker.getBottom(), false);
     g.setGradientFill (grad);
     g.fillRoundedRectangle (rocker, 6.0f);
 
@@ -175,7 +175,7 @@ void RockerSwitch::paint (juce::Graphics& g)
                          .withCentre ({ rocker.getX() + rocker.getWidth() * 0.27f, rocker.getCentreY() });
     g.setColour (juce::Colour (0xff111111));
     g.fillEllipse (dot);
-    g.setColour (on ? Colours::red : Colours::greyDark);
+    g.setColour (on ? Colours::red.brighter (0.3f) : juce::Colour (0xff5a0f15));
     g.drawEllipse (dot.reduced (2.0f), 2.0f);
     if (on)
     {

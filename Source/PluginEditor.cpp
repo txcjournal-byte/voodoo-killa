@@ -5,8 +5,8 @@ using namespace vk::ui;
 namespace
 {
 // Layout on the 1000 x 625 base canvas (8 px grid, measured from Design/ui-reference.png)
-const juce::Rectangle<int> kLogo        { 32, 12, 456, 80 };
-const juce::Rectangle<int> kSubtitle    { 40, 96, 448, 22 };
+const juce::Rectangle<int> kLogo        { 36, 6, 462, 92 };
+const juce::Rectangle<int> kSubtitle    { 47, 99, 448, 20 };
 const juce::Rectangle<int> kTopBar      { 504, 36, 336, 48 };
 const juce::Rectangle<int> kKill        { 848, 36, 104, 52 };
 const juce::Rectangle<int> kLock        { 960, 50, 24, 26 };
