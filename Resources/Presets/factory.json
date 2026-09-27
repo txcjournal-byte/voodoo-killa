@@ -1,1 +1,1520 @@
-{"version":1,"categories":[],"presets":[]}
+{
+ "version": 1,
+ "product": "Voodoo Killa",
+ "categories": [
+  {
+   "id": "halfcut",
+   "name": "HALFCUT",
+   "desc": "Halftime",
+   "colour": "#8A2BE2",
+   "midiNote": 48
+  },
+  {
+   "id": "deadtape",
+   "name": "DEAD TAPE",
+   "desc": "Tape Stop",
+   "colour": "#B22222",
+   "midiNote": 49
+  },
+  {
+   "id": "glitchritval",
+   "name": "GLITCH RITVAL",
+   "desc": "Stutter / Repeat",
+   "colour": "#00E5FF",
+   "midiNote": 50
+  },
+  {
+   "id": "chopped",
+   "name": "CHOPPED",
+   "desc": "Chop / Gate",
+   "colour": "#FF6A00",
+   "midiNote": 51
+  },
+  {
+   "id": "backmask",
+   "name": "BACKMASK",
+   "desc": "Reverse",
+   "colour": "#9400D3",
+   "midiNote": 52
+  },
+  {
+   "id": "diabolvs",
+   "name": "DIABOLVS",
+   "desc": "Pitch",
+   "colour": "#DC143C",
+   "midiNote": 53
+  },
+  {
+   "id": "cassettecvlt",
+   "name": "CASSETTE CVLT",
+   "desc": "Lo-Fi",
+   "colour": "#C8A165",
+   "midiNote": 54
+  },
+  {
+   "id": "villainera",
+   "name": "VILLAIN ERA",
+   "desc": "Dark",
+   "colour": "#4B0082",
+   "midiNote": 55
+  },
+  {
+   "id": "aura",
+   "name": "AURA",
+   "desc": "Space / Reverb",
+   "colour": "#40E0D0",
+   "midiNote": 56
+  },
+  {
+   "id": "toxic",
+   "name": "TOXIC",
+   "desc": "Filter / Sweep",
+   "colour": "#7CFC00",
+   "midiNote": 57
+  },
+  {
+   "id": "crashout",
+   "name": "CRASH OUT",
+   "desc": "Rage / Distortion",
+   "colour": "#FF0000",
+   "midiNote": 58
+  },
+  {
+   "id": "lockin",
+   "name": "LOCK IN",
+   "desc": "Transitions / Drops",
+   "colour": "#FFD700",
+   "midiNote": 59
+  }
+ ],
+ "presets": [
+  {
+   "id": "halfcut_1",
+   "name": "Halfcut",
+   "desc": "halftime",
+   "category": "halfcut",
+   "photo": "halfcut_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   }
+  },
+  {
+   "id": "halfcut_2",
+   "name": "Slow Grave",
+   "desc": "halftime + dark",
+   "category": "halfcut",
+   "photo": "halfcut_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 1800
+   }
+  },
+  {
+   "id": "halfcut_3",
+   "name": "Quarter Death",
+   "desc": "quarter time",
+   "category": "halfcut",
+   "photo": "halfcut_3.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "time": {
+    "mode": "quarter"
+   }
+  },
+  {
+   "id": "halfcut_4",
+   "name": "NPC Mode",
+   "desc": "robotic lofi",
+   "category": "halfcut",
+   "photo": "halfcut_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   },
+   "lofi": {
+    "bits": 8,
+    "srate": 16000
+   }
+  },
+  {
+   "id": "halfcut_5",
+   "name": "Sleepwalk",
+   "desc": "halftime + wobble",
+   "category": "halfcut",
+   "photo": "halfcut_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "half",
+    "pitchFollow": true
+   },
+   "pitch": {
+    "wobble": 25,
+    "wobbleHz": 0.5
+   }
+  },
+  {
+   "id": "halfcut_6",
+   "name": "Slow Bleed",
+   "desc": "reverb tail",
+   "category": "halfcut",
+   "photo": "halfcut_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   },
+   "space": {
+    "reverbSize": 0.8,
+    "reverbMix": 0.35
+   }
+  },
+  {
+   "id": "halfcut_7",
+   "name": "Cooked",
+   "desc": "tape drive",
+   "category": "halfcut",
+   "photo": "halfcut_7.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   },
+   "drive": {
+    "type": "tape",
+    "amount": 0.5
+   },
+   "lofi": {
+    "wow": 0.3
+   }
+  },
+  {
+   "id": "halfcut_8",
+   "name": "Drag Me Down",
+   "desc": "octave down",
+   "category": "halfcut",
+   "photo": "halfcut_8.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "half"
+   },
+   "pitch": {
+    "semis": -12
+   }
+  },
+  {
+   "id": "deadtape_1",
+   "name": "Flatline",
+   "desc": "stop 1 bar",
+   "category": "deadtape",
+   "photo": "deadtape_1.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "time": {
+    "mode": "stop",
+    "curve": 0.7
+   }
+  },
+  {
+   "id": "deadtape_2",
+   "name": "Power Cut",
+   "desc": "stop 1/4",
+   "category": "deadtape",
+   "photo": "deadtape_2.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "stop",
+    "curve": 0.9
+   }
+  },
+  {
+   "id": "deadtape_3",
+   "name": "Last Breath",
+   "desc": "slow stop + reverb",
+   "category": "deadtape",
+   "photo": "deadtape_3.jpg",
+   "trigger": "every8",
+   "length": 2,
+   "time": {
+    "mode": "stop"
+   },
+   "space": {
+    "reverbSize": 0.9,
+    "reverbMix": 0.4
+   }
+  },
+  {
+   "id": "deadtape_4",
+   "name": "Brake Check",
+   "desc": "stop then start",
+   "category": "deadtape",
+   "photo": "deadtape_4.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "stopstart"
+   }
+  },
+  {
+   "id": "deadtape_5",
+   "name": "Rewind Demon",
+   "desc": "tape rewind",
+   "category": "deadtape",
+   "photo": "deadtape_5.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "rewind",
+    "pitchFollow": true
+   }
+  },
+  {
+   "id": "deadtape_6",
+   "name": "It's Over",
+   "desc": "stop + fade + lofi",
+   "category": "deadtape",
+   "photo": "deadtape_6.jpg",
+   "trigger": "every8",
+   "length": 4,
+   "time": {
+    "mode": "stop"
+   },
+   "lofi": {
+    "noise": 0.3
+   }
+  },
+  {
+   "id": "deadtape_7",
+   "name": "Dead Battery",
+   "desc": "stop + gate stutter",
+   "category": "deadtape",
+   "photo": "deadtape_7.jpg",
+   "trigger": "every4",
+   "length": 2,
+   "time": {
+    "mode": "stop"
+   },
+   "gate": {
+    "pattern": "x-x-x-x--x--x---"
+   }
+  },
+  {
+   "id": "deadtape_8",
+   "name": "Unplugged",
+   "desc": "vinyl power-down",
+   "category": "deadtape",
+   "photo": "deadtape_8.jpg",
+   "trigger": "lastbeat",
+   "length": 0.5,
+   "time": {
+    "mode": "stop",
+    "curve": 1.0
+   },
+   "lofi": {
+    "noise": 0.2
+   }
+  },
+  {
+   "id": "glitchritval_1",
+   "name": "Ritval",
+   "desc": "repeat 1/8",
+   "category": "glitchritval",
+   "photo": "glitchritval_1.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/8"
+   }
+  },
+  {
+   "id": "glitchritval_2",
+   "name": "Brainrot",
+   "desc": "random scatter",
+   "category": "glitchritval",
+   "photo": "glitchritval_2.jpg",
+   "trigger": "every4",
+   "length": 2,
+   "time": {
+    "mode": "scatter",
+    "rate": "1/16"
+   }
+  },
+  {
+   "id": "glitchritval_3",
+   "name": "Possessed",
+   "desc": "repeat 1/16 + pitch up",
+   "category": "glitchritval",
+   "photo": "glitchritval_3.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/16"
+   },
+   "pitch": {
+    "ramp": 12
+   }
+  },
+  {
+   "id": "glitchritval_4",
+   "name": "Machine Gun",
+   "desc": "repeat 1/32",
+   "category": "glitchritval",
+   "photo": "glitchritval_4.jpg",
+   "trigger": "lastbeat",
+   "length": 0.5,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/32"
+   }
+  },
+  {
+   "id": "glitchritval_5",
+   "name": "Triplet Curse",
+   "desc": "triplet repeat",
+   "category": "glitchritval",
+   "photo": "glitchritval_5.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/8T"
+   }
+  },
+  {
+   "id": "glitchritval_6",
+   "name": "Spiral",
+   "desc": "accelerating roll",
+   "category": "glitchritval",
+   "photo": "glitchritval_6.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/8",
+    "ramp": 1.0
+   }
+  },
+  {
+   "id": "glitchritval_7",
+   "name": "Broken Prayer",
+   "desc": "repeat + reverse",
+   "category": "glitchritval",
+   "photo": "glitchritval_7.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/8",
+    "alternate": true
+   }
+  },
+  {
+   "id": "glitchritval_8",
+   "name": "Glitch Mass",
+   "desc": "scatter + bitcrush",
+   "category": "glitchritval",
+   "photo": "glitchritval_8.jpg",
+   "trigger": "every8",
+   "length": 4,
+   "time": {
+    "mode": "scatter",
+    "rate": "1/32"
+   },
+   "lofi": {
+    "bits": 6
+   }
+  },
+  {
+   "id": "chopped_1",
+   "name": "Chopped",
+   "desc": "1/16 gate",
+   "category": "chopped",
+   "photo": "chopped_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "x-x-x-x-x-x-x-x-"
+   }
+  },
+  {
+   "id": "chopped_2",
+   "name": "Cleaver",
+   "desc": "hard 1/8 chop",
+   "category": "chopped",
+   "photo": "chopped_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "xx--xx--xx--xx--",
+    "smooth": 1
+   }
+  },
+  {
+   "id": "chopped_3",
+   "name": "Rage Chop",
+   "desc": "rage gate + drive",
+   "category": "chopped",
+   "photo": "chopped_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "xxx-xx-xxx-x-xx-"
+   },
+   "drive": {
+    "type": "clip",
+    "amount": 0.4
+   }
+  },
+  {
+   "id": "chopped_4",
+   "name": "Drill Skip",
+   "desc": "drill pattern",
+   "category": "chopped",
+   "photo": "chopped_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "x--x--x---x--x--"
+   }
+  },
+  {
+   "id": "chopped_5",
+   "name": "Bounce Hex",
+   "desc": "plugg bounce",
+   "category": "chopped",
+   "photo": "chopped_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "x-xx-x-xx-x-xx-x",
+    "depth": 0.8
+   }
+  },
+  {
+   "id": "chopped_6",
+   "name": "Triplet Slice",
+   "desc": "triplet gate",
+   "category": "chopped",
+   "photo": "chopped_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "x-x",
+    "rate": "1/16T"
+   }
+  },
+  {
+   "id": "chopped_7",
+   "name": "Offbeat Knife",
+   "desc": "offbeat gate",
+   "category": "chopped",
+   "photo": "chopped_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pattern": "-x-x-x-x-x-x-x-x"
+   }
+  },
+  {
+   "id": "chopped_8",
+   "name": "Chainsaw",
+   "desc": "1/32 gate + fuzz",
+   "category": "chopped",
+   "photo": "chopped_8.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "gate": {
+    "pattern": "x-",
+    "rate": "1/32"
+   },
+   "drive": {
+    "type": "fuzz",
+    "amount": 0.5
+   }
+  },
+  {
+   "id": "backmask_1",
+   "name": "Backmask",
+   "desc": "reverse 1/4",
+   "category": "backmask",
+   "photo": "backmask_1.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "reverse"
+   }
+  },
+  {
+   "id": "backmask_2",
+   "name": "Hidden Message",
+   "desc": "reverse 1 bar",
+   "category": "backmask",
+   "photo": "backmask_2.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "time": {
+    "mode": "reverse"
+   }
+  },
+  {
+   "id": "backmask_3",
+   "name": "Satan Spin",
+   "desc": "reverse + octave down",
+   "category": "backmask",
+   "photo": "backmask_3.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "time": {
+    "mode": "reverse"
+   },
+   "pitch": {
+    "semis": -12
+   }
+  },
+  {
+   "id": "backmask_4",
+   "name": "Reverse Swell",
+   "desc": "reverse + reverb swell",
+   "category": "backmask",
+   "photo": "backmask_4.jpg",
+   "trigger": "every4",
+   "length": 2,
+   "time": {
+    "mode": "reverse"
+   },
+   "space": {
+    "reverbSize": 0.9,
+    "reverbMix": 0.5
+   }
+  },
+  {
+   "id": "backmask_5",
+   "name": "Delulu",
+   "desc": "reverse + dreamy shimmer",
+   "category": "backmask",
+   "photo": "backmask_5.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "reverse"
+   },
+   "space": {
+    "reverbSize": 0.8,
+    "reverbMix": 0.2,
+    "shimmer": 0.4
+   }
+  },
+  {
+   "id": "backmask_6",
+   "name": "Mirror",
+   "desc": "alternating fwd/rev 1/8",
+   "category": "backmask",
+   "photo": "backmask_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "time": {
+    "mode": "reverse",
+    "rate": "1/8",
+    "alternate": true
+   }
+  },
+  {
+   "id": "backmask_7",
+   "name": "Rewind Soul",
+   "desc": "reverse echo",
+   "category": "backmask",
+   "photo": "backmask_7.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "reverse"
+   },
+   "space": {
+    "delayTime": "1/8",
+    "delayFb": 0.5,
+    "delayMix": 0.35,
+    "pingPong": false
+   }
+  },
+  {
+   "id": "backmask_8",
+   "name": "Inverse Cross",
+   "desc": "reverse + halftime",
+   "category": "backmask",
+   "photo": "backmask_8.jpg",
+   "trigger": "every8",
+   "length": 2,
+   "time": {
+    "mode": "reverse",
+    "speed": 0.5
+   }
+  },
+  {
+   "id": "diabolvs_1",
+   "name": "Diabolvs",
+   "desc": "tritone down",
+   "category": "diabolvs",
+   "photo": "diabolvs_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": -6
+   }
+  },
+  {
+   "id": "diabolvs_2",
+   "name": "Lucifer Low",
+   "desc": "octave down",
+   "category": "diabolvs",
+   "photo": "diabolvs_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": -12
+   }
+  },
+  {
+   "id": "diabolvs_3",
+   "name": "Angel High",
+   "desc": "octave up + air",
+   "category": "diabolvs",
+   "photo": "diabolvs_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": 12
+   },
+   "filter": {
+    "type": "hp",
+    "cutoff": 300
+   }
+  },
+  {
+   "id": "diabolvs_4",
+   "name": "Tritone",
+   "desc": "tritone wobble",
+   "category": "diabolvs",
+   "photo": "diabolvs_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": -6,
+    "wobble": 30,
+    "wobbleHz": 2.0
+   }
+  },
+  {
+   "id": "diabolvs_5",
+   "name": "Fall From Grace",
+   "desc": "end-bar pitch drop",
+   "category": "diabolvs",
+   "photo": "diabolvs_5.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "pitch": {
+    "endDrop": -12
+   }
+  },
+  {
+   "id": "diabolvs_6",
+   "name": "Demon Voice",
+   "desc": "down + formant down",
+   "category": "diabolvs",
+   "photo": "diabolvs_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": -7,
+    "formant": -6
+   },
+   "drive": {
+    "type": "tape",
+    "amount": 0.3
+   }
+  },
+  {
+   "id": "diabolvs_7",
+   "name": "Chipmunk Cult",
+   "desc": "up + formant up",
+   "category": "diabolvs",
+   "photo": "diabolvs_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": 7,
+    "formant": 5
+   }
+  },
+  {
+   "id": "diabolvs_8",
+   "name": "Glazed",
+   "desc": "detune wide chorus",
+   "category": "diabolvs",
+   "photo": "diabolvs_8.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "detune": 12
+   },
+   "width": 1.7
+  },
+  {
+   "id": "cassettecvlt_1",
+   "name": "Cvlt Tape",
+   "desc": "cassette",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "lofi": {
+    "wow": 0.3,
+    "flutter": 0.2,
+    "noise": 0.15,
+    "tone": 9000
+   }
+  },
+  {
+   "id": "cassettecvlt_2",
+   "name": "Basement",
+   "desc": "muffled room",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 1200
+   },
+   "space": {
+    "reverbSize": 0.4,
+    "reverbMix": 0.2
+   }
+  },
+  {
+   "id": "cassettecvlt_3",
+   "name": "Memphis Mist",
+   "desc": "dark tape + crush",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "lofi": {
+    "bits": 10,
+    "srate": 22000,
+    "wow": 0.2
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 4000
+   }
+  },
+  {
+   "id": "cassettecvlt_4",
+   "name": "Warped",
+   "desc": "heavy wow",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "lofi": {
+    "wow": 0.8
+   }
+  },
+  {
+   "id": "cassettecvlt_5",
+   "name": "8-Bit Soul",
+   "desc": "8-bit",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "lofi": {
+    "bits": 6,
+    "srate": 11000
+   }
+  },
+  {
+   "id": "cassettecvlt_6",
+   "name": "Payphone",
+   "desc": "telephone",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "band",
+    "cutoff": 400,
+    "cutoff2": 3000
+   },
+   "drive": {
+    "type": "clip",
+    "amount": 0.3
+   }
+  },
+  {
+   "id": "cassettecvlt_7",
+   "name": "Pirate Radio",
+   "desc": "radio + noise",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "band",
+    "cutoff": 600,
+    "cutoff2": 4000
+   },
+   "lofi": {
+    "noise": 0.4
+   }
+  },
+  {
+   "id": "cassettecvlt_8",
+   "name": "Mid",
+   "desc": "subtle lofi",
+   "category": "cassettecvlt",
+   "photo": "cassettecvlt_8.jpg",
+   "trigger": "always",
+   "length": 4,
+   "lofi": {
+    "bits": 12,
+    "wow": 0.1,
+    "noise": 0.05
+   }
+  },
+  {
+   "id": "villainera_1",
+   "name": "Villain Era",
+   "desc": "dark filter + verb",
+   "category": "villainera",
+   "photo": "villainera_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 1500
+   },
+   "space": {
+    "reverbSize": 0.6,
+    "reverbMix": 0.25
+   }
+  },
+  {
+   "id": "villainera_2",
+   "name": "Midnight Mass",
+   "desc": "dark + choir shimmer",
+   "category": "villainera",
+   "photo": "villainera_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 2500
+   },
+   "space": {
+    "reverbSize": 0.85,
+    "reverbMix": 0.15,
+    "shimmer": 0.3
+   }
+  },
+  {
+   "id": "villainera_3",
+   "name": "Nox",
+   "desc": "pitch down + dark",
+   "category": "villainera",
+   "photo": "villainera_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "pitch": {
+    "semis": -5
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 2000
+   }
+  },
+  {
+   "id": "villainera_4",
+   "name": "Shadow Walk",
+   "desc": "dark + ping-pong",
+   "category": "villainera",
+   "photo": "villainera_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 2000
+   },
+   "space": {
+    "delayTime": "1/8",
+    "delayFb": 0.45,
+    "delayMix": 0.35,
+    "pingPong": true
+   }
+  },
+  {
+   "id": "villainera_5",
+   "name": "Hollow",
+   "desc": "band-pass hollow",
+   "category": "villainera",
+   "photo": "villainera_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "bp",
+    "cutoff": 800,
+    "reso": 0.6
+   }
+  },
+  {
+   "id": "villainera_6",
+   "name": "Graveyard Shift",
+   "desc": "dark halftime",
+   "category": "villainera",
+   "photo": "villainera_6.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "time": {
+    "mode": "half"
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 1200
+   }
+  },
+  {
+   "id": "villainera_7",
+   "name": "Black Candle",
+   "desc": "dark + tape drive",
+   "category": "villainera",
+   "photo": "villainera_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 1800
+   },
+   "drive": {
+    "type": "tape",
+    "amount": 0.5
+   }
+  },
+  {
+   "id": "villainera_8",
+   "name": "Void",
+   "desc": "freeze pad",
+   "category": "villainera",
+   "photo": "villainera_8.jpg",
+   "trigger": "hold",
+   "length": 4,
+   "space": {
+    "reverbSize": 0.9,
+    "reverbMix": 0.5,
+    "freeze": true
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 3000
+   }
+  },
+  {
+   "id": "aura_1",
+   "name": "Aura",
+   "desc": "big reverb",
+   "category": "aura",
+   "photo": "aura_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "space": {
+    "reverbSize": 0.8,
+    "reverbMix": 0.35
+   }
+  },
+  {
+   "id": "aura_2",
+   "name": "Aura Farming",
+   "desc": "shimmer + wide",
+   "category": "aura",
+   "photo": "aura_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "space": {
+    "reverbSize": 0.8,
+    "reverbMix": 0.35,
+    "shimmer": 0.5
+   },
+   "width": 1.8
+  },
+  {
+   "id": "aura_3",
+   "name": "Heaven Gate",
+   "desc": "shimmer + HP",
+   "category": "aura",
+   "photo": "aura_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "space": {
+    "reverbSize": 0.85,
+    "reverbMix": 0.3,
+    "shimmer": 0.6
+   },
+   "filter": {
+    "type": "hp",
+    "cutoff": 400
+   }
+  },
+  {
+   "id": "aura_4",
+   "name": "Frozen Soul",
+   "desc": "freeze on hold",
+   "category": "aura",
+   "photo": "aura_4.jpg",
+   "trigger": "hold",
+   "length": 4,
+   "space": {
+    "reverbSize": 0.9,
+    "reverbMix": 0.5,
+    "freeze": true
+   }
+  },
+  {
+   "id": "aura_5",
+   "name": "Main Character",
+   "desc": "wide ping-pong",
+   "category": "aura",
+   "photo": "aura_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "space": {
+    "delayTime": "1/4D",
+    "delayFb": 0.4,
+    "delayMix": 0.35,
+    "pingPong": true
+   },
+   "width": 1.7
+  },
+  {
+   "id": "aura_6",
+   "name": "Underwater Tomb",
+   "desc": "LP + chorus + verb",
+   "category": "aura",
+   "photo": "aura_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 900
+   },
+   "pitch": {
+    "wobble": 15,
+    "wobbleHz": 0.3
+   },
+   "space": {
+    "reverbSize": 0.7,
+    "reverbMix": 0.3
+   }
+  },
+  {
+   "id": "aura_7",
+   "name": "Cathedral",
+   "desc": "huge hall",
+   "category": "aura",
+   "photo": "aura_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "space": {
+    "reverbSize": 1.0,
+    "reverbMix": 0.45
+   }
+  },
+  {
+   "id": "aura_8",
+   "name": "Echo Chamber",
+   "desc": "echo throw",
+   "category": "aura",
+   "photo": "aura_8.jpg",
+   "trigger": "lastbeat",
+   "length": 1,
+   "space": {
+    "delayTime": "1/4",
+    "delayFb": 0.6,
+    "delayMix": 0.4,
+    "pingPong": false
+   }
+  },
+  {
+   "id": "toxic_1",
+   "name": "Toxic",
+   "desc": "LP sweep in",
+   "category": "toxic",
+   "photo": "toxic_1.jpg",
+   "trigger": "every4",
+   "length": 16,
+   "filter": {
+    "type": "lp",
+    "cutoff": 300,
+    "sweepFrom": 300,
+    "sweepTo": 18000
+   }
+  },
+  {
+   "id": "toxic_2",
+   "name": "Slime Sweep",
+   "desc": "resonant LFO",
+   "category": "toxic",
+   "photo": "toxic_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 1500,
+    "reso": 0.7,
+    "lfoRate": "1/4",
+    "lfoDepth": 0.6
+   }
+  },
+  {
+   "id": "toxic_3",
+   "name": "Radioactive",
+   "desc": "HP build",
+   "category": "toxic",
+   "photo": "toxic_3.jpg",
+   "trigger": "every8",
+   "length": 16,
+   "filter": {
+    "type": "hp",
+    "cutoff": 20,
+    "sweepFrom": 20,
+    "sweepTo": 2000
+   }
+  },
+  {
+   "id": "toxic_4",
+   "name": "Gas Mask",
+   "desc": "muffled + breath noise",
+   "category": "toxic",
+   "photo": "toxic_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 700
+   },
+   "lofi": {
+    "noise": 0.2
+   }
+  },
+  {
+   "id": "toxic_5",
+   "name": "Phone Tap",
+   "desc": "telephone intro",
+   "category": "toxic",
+   "photo": "toxic_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "band",
+    "cutoff": 500,
+    "cutoff2": 2500
+   }
+  },
+  {
+   "id": "toxic_6",
+   "name": "Pump Poison",
+   "desc": "sidechain pump",
+   "category": "toxic",
+   "photo": "toxic_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "gate": {
+    "pump": true,
+    "rate": "1/4",
+    "depth": 0.7
+   }
+  },
+  {
+   "id": "toxic_7",
+   "name": "The Ick",
+   "desc": "notch wobble",
+   "category": "toxic",
+   "photo": "toxic_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "notch",
+    "cutoff": 1200,
+    "reso": 0.5,
+    "lfoRate": "1/8",
+    "lfoDepth": 0.5
+   }
+  },
+  {
+   "id": "toxic_8",
+   "name": "Acid Bounce",
+   "desc": "resonant 1/16 steps",
+   "category": "toxic",
+   "photo": "toxic_8.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 1200,
+    "reso": 0.8,
+    "lfoRate": "1/16",
+    "lfoDepth": 0.5,
+    "lfoShape": "sh"
+   }
+  },
+  {
+   "id": "crashout_1",
+   "name": "Crash Out",
+   "desc": "rage drive",
+   "category": "crashout",
+   "photo": "crashout_1.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "clip",
+    "amount": 0.7
+   },
+   "filter": {
+    "type": "hp",
+    "cutoff": 120
+   }
+  },
+  {
+   "id": "crashout_2",
+   "name": "Hellfire",
+   "desc": "fuzz + octave",
+   "category": "crashout",
+   "photo": "crashout_2.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "fuzz",
+    "amount": 0.6
+   },
+   "pitch": {
+    "semis": 12,
+    "blend": 0.3
+   }
+  },
+  {
+   "id": "crashout_3",
+   "name": "Blown Out",
+   "desc": "blown speaker",
+   "category": "crashout",
+   "photo": "crashout_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "clip",
+    "amount": 1.0
+   },
+   "filter": {
+    "type": "band",
+    "cutoff": 300,
+    "cutoff2": 5000
+   }
+  },
+  {
+   "id": "crashout_4",
+   "name": "Molten",
+   "desc": "tape saturation + wobble",
+   "category": "crashout",
+   "photo": "crashout_4.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "tape",
+    "amount": 0.8
+   },
+   "pitch": {
+    "wobble": 10,
+    "wobbleHz": 1.5
+   }
+  },
+  {
+   "id": "crashout_5",
+   "name": "Tweaking",
+   "desc": "bitcrush drive",
+   "category": "crashout",
+   "photo": "crashout_5.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "bit",
+    "amount": 0.6
+   },
+   "lofi": {
+    "srate": 8000
+   }
+  },
+  {
+   "id": "crashout_6",
+   "name": "Clipper Cult",
+   "desc": "hard clipper",
+   "category": "crashout",
+   "photo": "crashout_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "clip",
+    "amount": 0.9
+   }
+  },
+  {
+   "id": "crashout_7",
+   "name": "Screamer",
+   "desc": "fold distortion + HP",
+   "category": "crashout",
+   "photo": "crashout_7.jpg",
+   "trigger": "always",
+   "length": 4,
+   "drive": {
+    "type": "fold",
+    "amount": 0.7
+   },
+   "filter": {
+    "type": "hp",
+    "cutoff": 400
+   }
+  },
+  {
+   "id": "crashout_8",
+   "name": "Burn It Down",
+   "desc": "distortion + halftime",
+   "category": "crashout",
+   "photo": "crashout_8.jpg",
+   "trigger": "every4",
+   "length": 4,
+   "drive": {
+    "type": "fuzz",
+    "amount": 0.6
+   },
+   "time": {
+    "mode": "half"
+   }
+  },
+  {
+   "id": "lockin_1",
+   "name": "Lock In",
+   "desc": "pre-hook stop",
+   "category": "lockin",
+   "photo": "lockin_1.jpg",
+   "trigger": "every8",
+   "length": 1,
+   "time": {
+    "mode": "stop"
+   }
+  },
+  {
+   "id": "lockin_2",
+   "name": "Pre-Drop Stop",
+   "desc": "2-beat stop + mute",
+   "category": "lockin",
+   "photo": "lockin_2.jpg",
+   "trigger": "every8",
+   "length": 2,
+   "time": {
+    "mode": "stop",
+    "endMute": 0.5
+   }
+  },
+  {
+   "id": "lockin_3",
+   "name": "Intro Crypt",
+   "desc": "filtered intro",
+   "category": "lockin",
+   "photo": "lockin_3.jpg",
+   "trigger": "always",
+   "length": 4,
+   "filter": {
+    "type": "lp",
+    "cutoff": 800
+   }
+  },
+  {
+   "id": "lockin_4",
+   "name": "Rise Up",
+   "desc": "riser pitch + HP",
+   "category": "lockin",
+   "photo": "lockin_4.jpg",
+   "trigger": "every8",
+   "length": 4,
+   "filter": {
+    "type": "hp",
+    "cutoff": 20,
+    "sweepFrom": 20,
+    "sweepTo": 1500
+   },
+   "pitch": {
+    "ramp": 7
+   }
+  },
+  {
+   "id": "lockin_5",
+   "name": "Drop Kill",
+   "desc": "full mute last beat",
+   "category": "lockin",
+   "photo": "lockin_5.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "gate": {
+    "pattern": "-",
+    "depth": 1.0
+   }
+  },
+  {
+   "id": "lockin_6",
+   "name": "Mute for 808",
+   "desc": "strong 808 duck",
+   "category": "lockin",
+   "photo": "lockin_6.jpg",
+   "trigger": "always",
+   "length": 4,
+   "duck": {
+    "amount": 0.9,
+    "release": 120
+   }
+  },
+  {
+   "id": "lockin_7",
+   "name": "End Bar Spin",
+   "desc": "backspin",
+   "category": "lockin",
+   "photo": "lockin_7.jpg",
+   "trigger": "every4",
+   "length": 1,
+   "time": {
+    "mode": "rewind"
+   }
+  },
+  {
+   "id": "lockin_8",
+   "name": "No Cap Drop",
+   "desc": "stutter into drop",
+   "category": "lockin",
+   "photo": "lockin_8.jpg",
+   "trigger": "every8",
+   "length": 2,
+   "time": {
+    "mode": "repeat",
+    "rate": "1/16",
+    "ramp": 1.0
+   }
+  }
+ ]
+}

@@ -69,7 +69,9 @@ void SpaceModule::process (float inL, float inR, bool active, double spb, float&
     {
         lastFreeze = freeze;
         lastSize = size;
-        revParams.roomSize = 0.35f + 0.64f * clamp01 (size);
+        // keep the shimmer feedback loop stable: long rooms + pitch feedback would run away
+        const float maxRoom = target.shimmer > 0.0f ? 0.86f : 0.99f;
+        revParams.roomSize = std::min (maxRoom, 0.35f + 0.64f * clamp01 (size));
         revParams.damping = 0.35f;
         revParams.wetLevel = 0.34f;
         revParams.dryLevel = 0.0f;
@@ -80,8 +82,9 @@ void SpaceModule::process (float inL, float inR, bool active, double spb, float&
 
     const float shimAmt = std::min (1.0f, shimmer);
     const float revSend = std::max (revMix, shimAmt * 0.8f);
-    float rl = inL + shimL * shimAmt * 0.55f;
-    float rr = inR + shimR * shimAmt * 0.55f;
+    // shimmer feedback is soft-limited so the loop gain can never exceed 1
+    float rl = inL + std::tanh (shimL * shimAmt * 0.3f);
+    float rr = inR + std::tanh (shimR * shimAmt * 0.3f);
     if (revSend > 1.0e-4f || freeze)
     {
         reverb.processStereo (&rl, &rr, 1);
