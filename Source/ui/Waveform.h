@@ -17,6 +17,7 @@ private:
     vk::EngineMeters& meters;
     std::array<float, vk::EngineMeters::kColumns> dry {}, wet {};
     float playhead = 0.0f;
+    juce::Image background;
 };
 
 /** The red thread: pin A -> pin B -> KILL PAD dot. Drawn by code as cubic Béziers arching above the cards. */

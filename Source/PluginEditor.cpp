@@ -255,6 +255,9 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
     addAndMakeVisible (view);
     view.onScaleChosen = [this] (float s) { applyScale (s); };
 
+    // read the stored size first: setting the resize limits below resizes the (still empty) window
+    float s = proc.getUiScale();
+
     // freely resizable (fixed aspect ratio) via the corner
     setResizable (true, true);
     setResizeLimits (juce::roundToInt (kBaseWidth * kMinScale), juce::roundToInt (kBaseHeight * kMinScale),
@@ -262,7 +265,6 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio ((double) kBaseWidth / (double) kBaseHeight);
 
-    float s = proc.getUiScale();
     if (s <= 0.0f)
     {
         // first open: roughly the physical size of a comfortable size (~1250 px wide), whatever the Windows DPI
@@ -271,6 +273,7 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
             dpi = (float) d->scale;
         s = std::round (juce::jlimit (kMinScale, 1.0f, 1.25f / juce::jmax (1.0f, dpi)) * 20.0f) / 20.0f;
     }
+    sizeInitialised = true;
     applyScale (s);
     startTimerHz (30);
 }
@@ -293,7 +296,8 @@ void VoodooKillaAudioProcessorEditor::resized()
     const float s = (float) getWidth() / (float) kBaseWidth;
     view.setBounds (0, 0, kBaseWidth, kBaseHeight);
     view.setTransform (juce::AffineTransform::scale (s));
-    proc.setUiScale (s);
+    if (sizeInitialised)
+        proc.setUiScale (s);   // remember the user's size (ignored while the constructor sets things up)
 }
 
 void VoodooKillaAudioProcessorEditor::timerCallback()

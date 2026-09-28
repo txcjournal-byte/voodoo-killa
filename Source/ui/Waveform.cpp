@@ -29,18 +29,26 @@ void Waveform::update()
 void Waveform::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat();
-    Theme::drawPaper (g, b, 9001u, true);
-
     const auto a = b.reduced (14.0f, 8.0f);
     const float mid = a.getCentreY();
 
-    // beat grid
-    for (int i = 1; i < 16; ++i)
+    // paper strip + beat grid rendered once per size / scale (the waveform itself redraws at 30 fps)
+    const float scale = g.getInternalContext().getPhysicalPixelScaleFactor();
+    const int iw = juce::roundToInt (b.getWidth() * scale), ih = juce::roundToInt (b.getHeight() * scale);
+    if (background.getWidth() != iw || background.getHeight() != ih)
     {
-        const float x = a.getX() + a.getWidth() * (float) i / 16.0f;
-        g.setColour (Colours::ink.withAlpha (i % 4 == 0 ? 0.18f : 0.07f));
-        g.drawVerticalLine ((int) x, a.getY(), a.getBottom());
+        background = juce::Image (juce::Image::ARGB, juce::jmax (1, iw), juce::jmax (1, ih), true);
+        juce::Graphics bg (background);
+        bg.addTransform (juce::AffineTransform::scale (scale));
+        Theme::drawPaper (bg, b, 9001u, true);
+        for (int i = 1; i < 16; ++i)
+        {
+            const float x = a.getX() + a.getWidth() * (float) i / 16.0f;
+            bg.setColour (Colours::ink.withAlpha (i % 4 == 0 ? 0.18f : 0.07f));
+            bg.drawVerticalLine ((int) x, a.getY(), a.getBottom());
+        }
     }
+    g.drawImage (background, b);
 
     const int n = vk::EngineMeters::kColumns;
     const float colW = a.getWidth() / (float) n;

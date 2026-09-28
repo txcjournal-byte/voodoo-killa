@@ -14,8 +14,11 @@ public:
 
     /** slot: 0 = none, 1 = A, 2 = B. */
     void setContent (int libraryIndex, int slot);
-    void setPulse (float amount);
+    /** Returns true when the glow changed (the grid then repaints this card's area). */
+    bool setPulse (float amount);
+    float getPulse() const noexcept { return pulse; }
     int getSlot() const noexcept { return slot; }
+    juce::Rectangle<float> getFrameInParent() const;
 
     /** Pin position in this component's coordinates. */
     juce::Point<float> getPinPosition() const;
@@ -48,6 +51,7 @@ public:
     void refresh();                 // selection / category changed
     void updatePulse (bool active, float phase);
     void resized() override;
+    void paintOverChildren (juce::Graphics&) override;
 
     /** Pin positions (in `relativeTo` coordinates) of the visible A / B cards. */
     std::optional<juce::Point<float>> getPin (int slot, juce::Component& relativeTo) const;

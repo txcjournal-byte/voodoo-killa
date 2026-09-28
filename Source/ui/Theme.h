@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <map>
 
 namespace vk::ui
 {
@@ -21,6 +22,22 @@ namespace Colours
 constexpr int kGrid = 8;
 constexpr int kBaseWidth = 1000;
 constexpr int kBaseHeight = 625;
+
+/**
+    Fonts and bitmaps used by the UI. Owned by the editor through a juce::SharedResourcePointer, so they are
+    released when the last plugin window closes (never by static destructors during DLL unload).
+*/
+struct ThemeResources
+{
+    ThemeResources();
+    ~ThemeResources();
+
+    juce::Typeface::Ptr typewriterFace, markerFace;
+    std::map<juce::String, juce::Image> images;
+    juce::Image backgroundTile, paperTile;
+
+    JUCE_DECLARE_NON_COPYABLE (ThemeResources)
+};
 
 /**
     Fonts, textures and small drawing helpers.

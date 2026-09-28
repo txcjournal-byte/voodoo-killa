@@ -67,21 +67,40 @@ namespace
 }
 
 // ===========================================================================
+// Fonts and bitmaps live in ThemeResources, owned (shared) by the open editors.
+// Nothing graphical has static storage duration: static destructors run while Windows unloads the
+// plugin DLL (loader lock held), and releasing DirectWrite fonts / images there can hang the host.
+ThemeResources::ThemeResources()
+{
+    typewriterFace = loadTypeface ("SpecialElite-Regular.ttf");
+    markerFace = loadTypeface ("PermanentMarker-Regular.ttf");
+}
+
+ThemeResources::~ThemeResources() = default;
+
+namespace
+{
+    ThemeResources& res()
+    {
+        // The editor holds a SharedResourcePointer, so this only bumps a reference count.
+        juce::SharedResourcePointer<ThemeResources> ptr;
+        return *ptr;
+    }
+}
+
 juce::Font Theme::typewriter (float h)
 {
-    static auto tf = loadTypeface ("SpecialElite-Regular.ttf");
-    return makeFont (tf, h, "Courier New");
+    return makeFont (res().typewriterFace, h, "Courier New");
 }
 
 juce::Font Theme::marker (float h)
 {
-    static auto tf = loadTypeface ("PermanentMarker-Regular.ttf");
-    return makeFont (tf, h, "Arial");
+    return makeFont (res().markerFace, h, "Arial");
 }
 
 juce::Image Theme::getAsset (const juce::String& fileName)
 {
-    static std::map<juce::String, juce::Image> cache;
+    auto& cache = res().images;
     if (auto it = cache.find (fileName); it != cache.end())
         return it->second;
 
@@ -92,7 +111,7 @@ juce::Image Theme::getAsset (const juce::String& fileName)
         {
             int size = 0;
             if (const char* data = BinaryData::getNamedResource (BinaryData::namedResourceList[i], size))
-                img = juce::ImageCache::getFromMemory (data, size);
+                img = juce::ImageFileFormat::loadFrom (data, (size_t) size);   // not ImageCache: freed with the editor
             break;
         }
     }
@@ -102,22 +121,24 @@ juce::Image Theme::getAsset (const juce::String& fileName)
 
 const juce::Image& Theme::backgroundTile()
 {
-    static const juce::Image img = []
+    auto& r = res();
+    if (! r.backgroundTile.isValid())
     {
         auto asset = getAsset ("background.png");
-        return asset.isValid() ? asset : makeGrainTile (Colours::background, 0.35f, 40, 1234u);
-    }();
-    return img;
+        r.backgroundTile = asset.isValid() ? asset : makeGrainTile (Colours::background, 0.35f, 40, 1234u);
+    }
+    return r.backgroundTile;
 }
 
 const juce::Image& Theme::paperTile()
 {
-    static const juce::Image img = []
+    auto& r = res();
+    if (! r.paperTile.isValid())
     {
         auto asset = getAsset ("paper.png");
-        return asset.isValid() ? asset : makeGrainTile (Colours::paper, 0.12f, 260, 777u);
-    }();
-    return img;
+        r.paperTile = asset.isValid() ? asset : makeGrainTile (Colours::paper, 0.12f, 260, 777u);
+    }
+    return r.paperTile;
 }
 
 void Theme::fillBackground (juce::Graphics& g, juce::Rectangle<float> area)

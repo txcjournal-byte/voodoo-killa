@@ -527,6 +527,7 @@ juce::ValueTree VoodooKillaAudioProcessor::createStateTree()
     sel.setProperty ("category", currentCategory, nullptr);
     sel.setProperty ("lock", categoryLock, nullptr);
     sel.setProperty ("uiScale", uiScale, nullptr);
+    sel.setProperty ("uiScaleVersion", 2, nullptr);
     sel.setProperty ("clickSlot", clickSlot == Slot::B ? 1 : 0, nullptr);
     state.appendChild (sel, nullptr);
     return state;
@@ -581,7 +582,9 @@ void VoodooKillaAudioProcessor::applyStateTree (const juce::ValueTree& tree)
             slotB = SlotState {};
         setCurrentCategory ((int) sel.getProperty ("category", currentCategory));
         categoryLock = (bool) sel.getProperty ("lock", false);
-        uiScale = (float) sel.getProperty ("uiScale", uiScale);
+        // test builds before version 2 stored a wrong (minimum) size -> ignore it and use the default size
+        if ((int) sel.getProperty ("uiScaleVersion", 0) >= 2)
+            uiScale = (float) sel.getProperty ("uiScale", uiScale);
         clickSlot = (int) sel.getProperty ("clickSlot", 0) == 1 ? Slot::B : Slot::A;
     }
     lastMorphSideB = pMorph->load() >= 0.5f;

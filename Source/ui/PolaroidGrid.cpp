@@ -25,14 +25,21 @@ void PolaroidCard::setContent (int idx, int s)
     repaint();
 }
 
-void PolaroidCard::setPulse (float amount)
+bool PolaroidCard::setPulse (float amount)
 {
+    // the pulse is drawn by the grid on top of the (buffered) card, so the card itself never re-renders
     amount = juce::jlimit (0.0f, 1.0f, amount);
-    if (std::abs (amount - pulse) > 0.02f || (amount == 0.0f && pulse != 0.0f))
+    if (std::abs (amount - pulse) > 0.04f || (amount == 0.0f && pulse != 0.0f))
     {
         pulse = amount;
-        repaint();
+        return true;
     }
+    return false;
+}
+
+juce::Rectangle<float> PolaroidCard::getFrameInParent() const
+{
+    return frameBounds() + getPosition().toFloat();
 }
 
 juce::Rectangle<float> PolaroidCard::frameBounds() const
@@ -92,14 +99,8 @@ void PolaroidCard::paint (juce::Graphics& g)
     // selection frame + pin with A/B tag
     if (slot > 0)
     {
-        const float glow = 0.75f + 0.25f * pulse;
-        g.setColour (Colours::red.withMultipliedBrightness (glow).withAlpha (0.9f));
-        g.drawRect (f.reduced (1.0f), 2.5f + pulse * 1.0f);
-        if (pulse > 0.0f)
-        {
-            g.setColour (Colours::red.withAlpha (0.18f * pulse));
-            g.drawRect (f.reduced (4.0f), 3.0f);
-        }
+        g.setColour (Colours::red.withMultipliedBrightness (0.8f).withAlpha (0.9f));
+        g.drawRect (f.reduced (1.0f), 2.5f);
 
         const auto pin = getPinPosition();
         auto tag = juce::Rectangle<float> (18.0f, 18.0f).withCentre (pin.translated (14.0f, 16.0f));
@@ -173,7 +174,23 @@ void PolaroidGrid::updatePulse (bool active, float phase)
     for (auto& c : cards)
     {
         const bool running = (c->getSlot() == 1 && ! bSide) || (c->getSlot() == 2 && bSide);
-        c->setPulse (running ? amount : 0.0f);
+        if (c->setPulse (running ? amount : 0.0f))
+            repaint (c->getBounds());   // cheap: the card is a cached image, only the glow is drawn
+    }
+}
+
+void PolaroidGrid::paintOverChildren (juce::Graphics& g)
+{
+    for (auto& c : cards)
+    {
+        const float p = c->getPulse();
+        if (p <= 0.0f || c->getSlot() == 0)
+            continue;
+        const auto f = c->getFrameInParent();
+        g.setColour (Colours::red.withAlpha (0.5f + 0.5f * p));
+        g.drawRect (f.reduced (1.0f), 2.5f + p);
+        g.setColour (Colours::red.withAlpha (0.18f * p));
+        g.drawRect (f.reduced (4.0f), 3.0f);
     }
 }
 

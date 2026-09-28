@@ -63,8 +63,11 @@ public:
 private:
     void timerCallback() override;
     void applyScale (float s);
+    bool sizeInitialised = false;
 
     VoodooKillaAudioProcessor& proc;
+    // declared first: fonts/images outlive every component of this window and die with it
+    juce::SharedResourcePointer<vk::ui::ThemeResources> themeResources;
     vk::ui::KillaLookAndFeel lnf;
     MainView view;
     juce::TooltipWindow tooltips { this, 600 };
