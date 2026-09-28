@@ -41,7 +41,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout VoodooKillaAudioProcessor::c
                     AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int) { return (v > 0.05f ? "+" : "") + String (v, 1); })));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { ParamIDs::space, 1 }, "Space", NormalisableRange<float> (0.0f, 1.0f), 0.5f, pct));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { ParamIDs::mix, 1 }, "Mix", NormalisableRange<float> (0.0f, 1.0f), 1.0f, pct));
-    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { ParamIDs::out, 1 }, "Out", NormalisableRange<float> (-24.0f, 12.0f, 0.1f), 0.0f,
+    layout.add (std::make_unique<AudioParameterFloat> (ParameterID { ParamIDs::out, 1 }, "Out", NormalisableRange<float> (-12.0f, 12.0f, 0.1f), 0.0f,
                     AudioParameterFloatAttributes().withLabel ("dB").withStringFromValueFunction ([] (float v, int) { return String (v, 1) + " dB"; })));
     layout.add (std::make_unique<AudioParameterBool> (ParameterID { ParamIDs::duck, 1 }, "808 Duck", false));
     layout.add (std::make_unique<AudioParameterFloat> (ParameterID { ParamIDs::morph, 1 }, "Morph", NormalisableRange<float> (0.0f, 1.0f), 0.0f, pct));
