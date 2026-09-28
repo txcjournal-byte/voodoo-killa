@@ -31,14 +31,23 @@ public:
         const double hi = (double) newest();
         const double lo = hi - (double) (mask - 8);
         pos = std::min (hi, std::max (lo, pos));
+        if (pos < (double) validFrom - 2.0)
+        {
+            l = r = 0.0f;   // audio from before the transport started does not exist for us
+            return;
+        }
         l = readHermite (left, mask, pos);
         r = readHermite (right, mask, pos);
     }
+
+    /** Everything recorded before now is treated as silence (transport start). */
+    void forgetHistory() noexcept { validFrom = writeIndex; }
 
 private:
     std::vector<float> left, right;
     int64_t mask = 0;
     int64_t writeIndex = 0;
+    int64_t validFrom = 0;
 };
 
 /**
@@ -70,6 +79,9 @@ public:
 
     /** Forces a crossfade to a freshly started head on the next sample (transport jump etc.). */
     void resync() noexcept { forceNewHead = true; }
+
+    /** Transport (re)start: resync and never replay audio recorded before it. */
+    void restart() noexcept { buffer.forgetHistory(); forceNewHead = true; }
 
     const TimeBuffer& getBuffer() const noexcept { return buffer; }
 

@@ -24,6 +24,7 @@ private:
     int driftCounter = 0;
     float holdL = 0.0f, holdR = 0.0f;
     float hissL = 0.0f, hissR = 0.0f, crackle = 0.0f;
+    float inputEnv = 0.0f, envRelease = 0.9999f;
     Svf toneF[2];
     float lastTone = -1.0f;
     int counter = 0;

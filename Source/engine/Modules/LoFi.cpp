@@ -15,6 +15,7 @@ void LoFiModule::prepare (double sampleRate)
     for (auto* s : { &bitsSm, &srateSm, &wowSm, &flutterSm, &noiseSm, &toneSm })
         s->setTime (0.03f, sr);
     activeEnv.setTime (0.02f, sr);
+    envRelease = (float) std::exp (-1.0 / (0.25 * sr));
     modEnv.setTime (0.03f, sr);
     delay.prepare ((int) (0.02 * sr));
     reset();
@@ -46,7 +47,7 @@ void LoFiModule::process (float& l, float& r) noexcept
     const float rate    = std::exp2 (srateSm.process (std::log2 (on ? std::max (500.0f, target.srate) : kNeutralRate)));
     const float wow     = wowSm.process (on ? target.wow : 0.0f);
     const float flutter = flutterSm.process (on ? target.flutter : 0.0f);
-    const float noise   = noiseSm.process (on ? target.noise : 0.0f);
+    const float noiseAmt = noiseSm.process (on ? target.noise : 0.0f);
     const float tone    = std::exp2 (toneSm.process (std::log2 (on ? std::max (200.0f, target.tone) : kNeutralTone)));
     const float env = activeEnv.process (on);
 
@@ -108,7 +109,10 @@ void LoFiModule::process (float& l, float& r) noexcept
         r = std::round (r * levels) / levels;
     }
 
-    // ---- noise: hiss + crackle
+    // ---- noise: hiss + crackle, only while music plays (silence stays silent)
+    const float inPeak = std::max (std::abs (inL), std::abs (inR));
+    inputEnv = std::max (inPeak, inputEnv * envRelease);
+    const float noise = noiseAmt * std::min (1.0f, inputEnv * 10.0f);
     if (noise > 1.0e-4f)
     {
         const float hissAmt = noise * 0.02f;

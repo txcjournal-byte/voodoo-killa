@@ -80,6 +80,8 @@ public:
     /** Card click: slot A clears B (clean preset, morph off). Slot B keeps A. */
     void loadPreset (int libraryIndex, Slot slot, bool recordUndo = true);
     void clearSlotB (bool recordUndo = true);
+    /** Makes sure a B slot exists (picks the neighbouring card) so MORPH always does something. */
+    bool ensureSlotB();
     void stepPreset (int delta);
     /** KILL: random preset (respecting the category lock). Mutate: +-15 % of the current A. */
     void kill (bool mutate, uint32_t seed = 0);
@@ -174,7 +176,7 @@ private:
     int currentCategory = 0;
     bool categoryLock = false;
     Slot clickSlot = Slot::A;
-    float uiScale = 1.0f;
+    float uiScale = 0.0f;   // 0 = choose automatically on first open
     uint32_t selectionVersion = 1;
     bool lastMorphSideB = false;
     juce::StringArray favourites;

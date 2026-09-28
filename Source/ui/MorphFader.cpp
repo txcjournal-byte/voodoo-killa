@@ -14,7 +14,7 @@ void MorphFader::setMorphEnabled (bool e)
     if (e != enabled)
     {
         enabled = e;
-        setMouseCursor (enabled ? juce::MouseCursor::LeftRightResizeCursor : juce::MouseCursor::NormalCursor);
+        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
         repaint();
     }
 }
@@ -71,6 +71,8 @@ void MorphFader::paint (juce::Graphics& g)
 
 void MorphFader::mouseDown (const juce::MouseEvent& e)
 {
+    if (! enabled && onNeedB)
+        setMorphEnabled (onNeedB());   // no B yet: pick one so the fader always works
     if (! enabled)
         return;
     beginEdit();

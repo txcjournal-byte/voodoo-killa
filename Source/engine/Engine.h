@@ -19,6 +19,7 @@ struct TransportInfo
 {
     bool   playing = false;
     bool   hasPpq = false;
+    bool   hostTransport = false;   // a host play head exists (false in the standalone app)
     double ppq = 0.0;
     double bpm = 120.0;
     int    timeSigNum = 4, timeSigDen = 4;
@@ -103,6 +104,7 @@ private:
     double beatsPerBar = 4.0, barOrigin = 0.0;
     double internalPpq = 0.0, expectedPpq = -1.0;
     bool wasPlaying = false;
+    bool idle = false;              // host transport stopped: dry pass-through, frozen display
     int blockOffset = 0;
 
     // modules

@@ -26,6 +26,10 @@ const juce::Rectangle<int> kMorphTab    { 660, 516, 96, 22 };
 const juce::Rectangle<int> kDuckTab     { 856, 522, 96, 22 };
 const juce::Rectangle<int> kDuck        { 864, 548, 84, 52 };
 
+constexpr float kMinScale = 0.6f, kMaxScale = 1.5f;
+constexpr int kNumSizes = 6;
+const float kSizes[kNumSizes] = { 0.6f, 0.7f, 0.85f, 1.0f, 1.25f, 1.5f };
+
 const char* const kKnobIds[]    = { ParamIDs::amount, ParamIDs::speed, ParamIDs::tone, ParamIDs::space, ParamIDs::mix, ParamIDs::out };
 const char* const kKnobLabels[] = { "AMOUNT", "SPEED", "TONE", "SPACE", "MIX", "OUT" };
 const char* const kKnobTips[]   = {
@@ -94,6 +98,8 @@ MainView::MainView (VoodooKillaAudioProcessor& p)
     thread.setAlwaysOnTop (true);
 
     pad.onDotMoved = [this] { updateThread(); };
+    morphFader.onNeedB = [this] { return proc.ensureSlotB(); };
+    morphFader.setTooltip ("Morph A-B. Shift/right-click a card to choose B (otherwise the next card is used).");
     setSize (kBaseWidth, kBaseHeight);
 }
 
@@ -216,9 +222,9 @@ void MainView::showSettings (juce::Component& target)
     juce::PopupMenu menu;
     menu.addSectionHeader ("Interface size");
     const float current = proc.getUiScale();
-    menu.addItem (1, "100 %", true, std::abs (current - 1.0f) < 0.01f);
-    menu.addItem (2, "125 %", true, std::abs (current - 1.25f) < 0.01f);
-    menu.addItem (3, "150 %", true, std::abs (current - 1.5f) < 0.01f);
+    for (int i = 0; i < kNumSizes; ++i)
+        menu.addItem (i + 1, juce::String (juce::roundToInt (kSizes[i] * 100.0f)) + " %", true, std::abs (current - kSizes[i]) < 0.01f);
+    menu.addItem (9, "Drag the bottom-right corner for any size", false, false);
     menu.addSeparator();
     menu.addItem (10, "Open user preset folder");
     menu.addSectionHeader (juce::String ("Voodoo Killa ") + JucePlugin_VersionString);
@@ -235,8 +241,8 @@ void MainView::showSettings (juce::Component& target)
             folder.startAsProcess();
             return;
         }
-        const float s = r == 2 ? 1.25f : r == 3 ? 1.5f : 1.0f;
-        if (safe->onScaleChosen) safe->onScaleChosen (s);
+        if (r >= 1 && r <= kNumSizes && safe->onScaleChosen)
+            safe->onScaleChosen (kSizes[r - 1]);
     });
 }
 
@@ -247,12 +253,25 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
     setLookAndFeel (&lnf);
     tooltips.setLookAndFeel (&lnf);
     addAndMakeVisible (view);
-    view.onScaleChosen = [this] (float s)
+    view.onScaleChosen = [this] (float s) { applyScale (s); };
+
+    // freely resizable (fixed aspect ratio) via the corner
+    setResizable (true, true);
+    setResizeLimits (juce::roundToInt (kBaseWidth * kMinScale), juce::roundToInt (kBaseHeight * kMinScale),
+                     juce::roundToInt (kBaseWidth * kMaxScale), juce::roundToInt (kBaseHeight * kMaxScale));
+    if (auto* c = getConstrainer())
+        c->setFixedAspectRatio ((double) kBaseWidth / (double) kBaseHeight);
+
+    float s = proc.getUiScale();
+    if (s <= 0.0f)
     {
-        proc.setUiScale (s);
-        applyScale (s);
-    };
-    applyScale (proc.getUiScale());
+        // first open: roughly the physical size of a typical FX window (~1050 px wide), whatever the Windows DPI
+        float dpi = 1.0f;
+        if (const auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+            dpi = (float) d->scale;
+        s = std::round (juce::jlimit (kMinScale, 1.0f, 1.05f / juce::jmax (1.0f, dpi)) * 20.0f) / 20.0f;
+    }
+    applyScale (s);
     startTimerHz (30);
 }
 
@@ -265,14 +284,16 @@ VoodooKillaAudioProcessorEditor::~VoodooKillaAudioProcessorEditor()
 
 void VoodooKillaAudioProcessorEditor::applyScale (float s)
 {
-    s = juce::jlimit (1.0f, 1.5f, s);
-    view.setTransform (juce::AffineTransform::scale (s));
+    s = juce::jlimit (kMinScale, kMaxScale, s);
     setSize (juce::roundToInt (kBaseWidth * s), juce::roundToInt (kBaseHeight * s));
 }
 
 void VoodooKillaAudioProcessorEditor::resized()
 {
+    const float s = (float) getWidth() / (float) kBaseWidth;
     view.setBounds (0, 0, kBaseWidth, kBaseHeight);
+    view.setTransform (juce::AffineTransform::scale (s));
+    proc.setUiScale (s);
 }
 
 void VoodooKillaAudioProcessorEditor::timerCallback()

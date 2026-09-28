@@ -54,18 +54,26 @@ void Engine::beginBlock (const TransportInfo& t, int numSamples) noexcept
     blockBeatsPerSample = 1.0 / samplesPerBeat;
     beatsPerBar = std::max (1.0, (double) t.timeSigNum * 4.0 / (double) std::max (1, t.timeSigDen));
 
+    idle = t.hostTransport && ! t.playing;
+
     if (t.playing && t.hasPpq)
     {
         blockPpq = t.ppq;
-        if (! wasPlaying || std::abs (blockPpq - expectedPpq) > 2.0e-3)
-            time.resync();    // transport start, loop or jump -> fresh, in-sync read head
+        if (! wasPlaying)
+            time.restart();   // transport start: fresh head, no audio from before the start
+        else if (std::abs (blockPpq - expectedPpq) > 2.0e-3)
+            time.resync();    // loop or jump -> fresh, in-sync read head
 
         barOrigin = t.hasBarStart ? std::fmod (t.barStartPpq, beatsPerBar) : 0.0;
         if (barOrigin < 0.0) barOrigin += beatsPerBar;
     }
+    else if (idle)
+    {
+        blockPpq = t.hasPpq ? t.ppq : internalPpq;   // host stopped: effect rests, display frozen
+    }
     else
     {
-        blockPpq = internalPpq;   // free-running clock while the host is stopped
+        blockPpq = internalPpq;   // no host transport (standalone): free-running clock
     }
 
     wasPlaying = t.playing && t.hasPpq;
@@ -140,7 +148,9 @@ void Engine::processRange (juce::AudioBuffer<float>& io, int start, int num, con
         tctx.holdDown = holdState;
         tctx.holdStart = holdStartPpq;
 
-        const TriggerResult tr = Trigger::evaluate (c.trigger, ppq, tctx);
+        TriggerResult tr = Trigger::evaluate (c.trigger, ppq, tctx);
+        if (idle)
+            tr.active = false;
         const float a = activeEnv.process (tr.active);
         anyActive = anyActive || tr.active;
 
@@ -179,7 +189,8 @@ void Engine::processRange (juce::AudioBuffer<float>& io, int start, int num, con
         tone.process (wl, wr, c.tone);
 
         float sl, sr2;
-        space.process (wl * a, wr * a, tr.active, samplesPerBeat, sl, sr2);
+        // freeze re-captures at the start of every segment so it never hangs on forever
+        space.process (wl * a, wr * a, tr.active && ctx.segElapsed > 0.25, samplesPerBeat, sl, sr2);
 
         float el = wl * a + sl, er = wr * a + sr2;
         width.process (el, er, effective.width);
@@ -203,7 +214,9 @@ void Engine::processRange (juce::AudioBuffer<float>& io, int start, int num, con
         if (R != nullptr)
             R[i] = outR;
 
-        // ---- UI meters: one bar of min/max columns
+        // ---- UI meters: one bar of min/max columns (frozen while the host is stopped)
+        if (idle)
+            continue;
         const double barPos = std::fmod (ppq - barOrigin, beatsPerBar);
         const double norm = (barPos < 0.0 ? barPos + beatsPerBar : barPos) / beatsPerBar;
         const int col = std::clamp ((int) (norm * EngineMeters::kColumns), 0, EngineMeters::kColumns - 1);

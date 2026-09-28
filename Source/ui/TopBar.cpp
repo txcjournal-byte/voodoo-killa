@@ -211,24 +211,93 @@ void TopBar::showPresetMenu()
                         });
 }
 
+/**
+    Inline "save preset" panel drawn inside the plugin window.
+    (A separate modal desktop window can end up hidden behind the host's plugin window and block the UI.)
+*/
+class SavePanel : public juce::Component
+{
+public:
+    SavePanel (VoodooKillaAudioProcessor& p, std::function<void()> onClose) : proc (p), close (std::move (onClose))
+    {
+        name.setText (proc.getSlotA().info.name.trimCharactersAtEnd ("*"), false);
+        name.setFont (Theme::typewriter (17.0f));
+        name.setJustification (juce::Justification::centredLeft);
+        name.onReturnKey = [this] { save(); };
+        name.onEscapeKey = [this] { finish(); };
+        addAndMakeVisible (name);
+        for (auto* b : { &saveButton, &cancelButton })
+            addAndMakeVisible (b);
+        saveButton.onClick = [this] { save(); };
+        cancelButton.onClick = [this] { finish(); };
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (juce::Colours::black.withAlpha (0.6f));
+        const auto box = panel();
+        Theme::drawPaper (g, box, 99u, true);
+        g.setColour (Colours::ink);
+        g.setFont (Theme::marker (24.0f));
+        g.drawText ("SAVE PRESET", box.withHeight (46.0f).reduced (16.0f, 0.0f), juce::Justification::centredLeft, false);
+    }
+
+    void resized() override
+    {
+        auto box = panel().reduced (16.0f).toNearestInt();
+        box.removeFromTop (34);
+        name.setBounds (box.removeFromTop (34));
+        box.removeFromTop (12);
+        auto row = box.removeFromTop (30);
+        cancelButton.setBounds (row.removeFromRight (100));
+        row.removeFromRight (8);
+        saveButton.setBounds (row.removeFromRight (100));
+    }
+
+    void grabFocus() { name.grabKeyboardFocus(); name.selectAll(); }
+
+private:
+    juce::Rectangle<float> panel() const { return getLocalBounds().toFloat().withSizeKeepingCentre (380.0f, 150.0f); }
+    void save()
+    {
+        if (name.getText().trim().isNotEmpty())
+            proc.saveUserPreset (name.getText());
+        finish();
+    }
+    void finish()
+    {
+        auto fn = close;
+        juce::MessageManager::callAsync (fn);   // delete after the click handler returns
+    }
+
+    VoodooKillaAudioProcessor& proc;
+    std::function<void()> close;
+    juce::TextEditor name;
+    juce::TextButton saveButton { "Save" }, cancelButton { "Cancel" };
+};
+
 void TopBar::showSaveDialog()
 {
-    saveWindow = std::make_unique<juce::AlertWindow> ("Save preset", "Name of the user preset:", juce::MessageBoxIconType::NoIcon, this);
-    saveWindow->addTextEditor ("name", proc.getSlotA().info.name.trimCharactersAtEnd ("*"));
-    saveWindow->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
-    saveWindow->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    auto* root = getTopLevelComponent();
+    for (auto* c = getParentComponent(); c != nullptr; c = c->getParentComponent())
+        if (c->getParentComponent() != nullptr && dynamic_cast<juce::AudioProcessorEditor*> (c->getParentComponent()) != nullptr)
+            root = c;   // the scaled main view
+    if (root == nullptr)
+        return;
 
     juce::Component::SafePointer<TopBar> safe (this);
-    saveWindow->enterModalState (true, juce::ModalCallbackFunction::create ([safe] (int result)
+    auto panel = std::make_unique<SavePanel> (proc, [safe]
     {
-        if (safe == nullptr || safe->saveWindow == nullptr)
-            return;
-        const auto nameText = safe->saveWindow->getTextEditorContents ("name");
-        safe->saveWindow.reset();
-        if (result == 1 && nameText.trim().isNotEmpty())
-            safe->proc.saveUserPreset (nameText);
-        safe->repaint();
-    }), false);
+        if (safe != nullptr)
+        {
+            safe->savePanel.reset();
+            safe->repaint();
+        }
+    });
+    panel->setBounds (root->getLocalBounds());
+    root->addAndMakeVisible (*panel);
+    panel->grabFocus();
+    savePanel = std::move (panel);
 }
 
 // ===========================================================================

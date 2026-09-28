@@ -11,6 +11,8 @@ public:
     MorphFader (juce::RangedAudioParameter& p, std::function<void()> gestureEnded);
 
     void setMorphEnabled (bool enabled);
+    /** Called when the fader is grabbed without a B card; returns true when a B is now available. */
+    std::function<bool()> onNeedB;
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent&) override;

@@ -29,7 +29,7 @@ private:
     VoodooKillaAudioProcessor& proc;
     int hover = -1;
     juce::String shownName;
-    std::unique_ptr<juce::AlertWindow> saveWindow;
+    std::unique_ptr<juce::Component> savePanel;
 };
 
 /** KILL: random preset. Right click = Mutate (±15 %). */

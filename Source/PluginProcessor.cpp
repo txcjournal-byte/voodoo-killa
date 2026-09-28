@@ -225,6 +225,7 @@ void VoodooKillaAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     {
         if (auto pos = ph->getPosition())
         {
+            t.hostTransport = true;
             t.playing = pos->getIsPlaying();
             if (auto ppq = pos->getPpqPosition()) { t.hasPpq = true; t.ppq = *ppq; }
             if (auto bpm = pos->getBpm()) t.bpm = *bpm;
@@ -296,9 +297,7 @@ void VoodooKillaAudioProcessor::setParamValue (const char* id, float plainValue)
 
 void VoodooKillaAudioProcessor::applyPresetDefaults (const vk::PresetInfo& p)
 {
-    // Hold is a performance mode: once chosen it stays while cards are auditioned
-    if ((int) pTrigger->load() != (int) vk::TriggerMode::hold)
-        setParamValue (ParamIDs::trigger, (float) (int) p.data.trigger);
+    // The trigger belongs to the user: it starts on Always and only changes when clicked.
     if (p.data.duck.amount > 0.0f)
         setParamValue (ParamIDs::duck, 1.0f);
 }
@@ -435,16 +434,28 @@ void VoodooKillaAudioProcessor::timerCallback()
         }
     }
 
-    // morph crossing 0.5 switches discrete settings -> follow with the trigger default
-    if (slotB.valid)
+}
+
+bool VoodooKillaAudioProcessor::ensureSlotB()
+{
+    if (slotB.valid || ! slotA.valid)
+        return slotB.valid;
+
+    // no B chosen yet: take the neighbouring card of the same category
+    int idx = slotA.libraryIndex;
+    if (idx < 0 || idx >= (int) library.getFactory().size())
+        idx = library.factoryIndex (currentCategory, 0);
+    const int cat = idx / vk::kPresetsPerCategory;
+    const int next = library.factoryIndex (cat, (idx % vk::kPresetsPerCategory + 1) % vk::kPresetsPerCategory);
+    if (const auto* p = library.get (next))
     {
-        const bool sideB = pMorph->load() >= 0.5f;
-        if (sideB != lastMorphSideB)
-        {
-            lastMorphSideB = sideB;
-            setParamValue (ParamIDs::trigger, (float) (int) (sideB ? slotB : slotA).info.data.trigger);
-        }
+        slotB.valid = true;
+        slotB.libraryIndex = next;
+        slotB.info = *p;
+        sendSlotsToAudio();
+        ++selectionVersion;
     }
+    return slotB.valid;
 }
 
 // ===========================================================================
