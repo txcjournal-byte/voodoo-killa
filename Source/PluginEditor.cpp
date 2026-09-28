@@ -265,11 +265,11 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
     float s = proc.getUiScale();
     if (s <= 0.0f)
     {
-        // first open: roughly the physical size of a typical FX window (~1050 px wide), whatever the Windows DPI
+        // first open: roughly the physical size of a comfortable size (~1250 px wide), whatever the Windows DPI
         float dpi = 1.0f;
         if (const auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
             dpi = (float) d->scale;
-        s = std::round (juce::jlimit (kMinScale, 1.0f, 1.05f / juce::jmax (1.0f, dpi)) * 20.0f) / 20.0f;
+        s = std::round (juce::jlimit (kMinScale, 1.0f, 1.25f / juce::jmax (1.0f, dpi)) * 20.0f) / 20.0f;
     }
     applyScale (s);
     startTimerHz (30);
