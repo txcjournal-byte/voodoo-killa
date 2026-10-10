@@ -43,6 +43,11 @@ pošle ho Applu k **notarizaci**, přibije tiket (staple), totéž s `.dmg`, a o
 Když Apple notarizaci odmítne, build selže a v logu je důvod.
 
 > Bez GitHubu to jde i ručně na Macu – viz „Ruční build na Macu“ dole.
+>
+> **Bez Macu (Windows/Linux):** klíč a CSR lze vytvořit přes `openssl req -new -newkey rsa:2048 -nodes`,
+> CSR nahrát na developer.apple.com → Certificates → Developer ID Application / Installer (G2 Sub-CA),
+> a z `.cer` + klíčů složit jeden `.p12` s oběma identitami (legacy šifrování 3DES/SHA1, které `security import` přijme),
+> např. `openssl pkcs12 -export -legacy …` pro každou identitu a pak sloučit `keytool -J-Dkeystore.pkcs12.legacy -importkeystore`.
 
 ## Krok 2 – Windows (volitelné)
 

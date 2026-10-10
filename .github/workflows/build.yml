@@ -114,6 +114,10 @@ jobs:
           security unlock-keychain -p ci "$KC"
           echo "$MAC_CERTS_P12" | base64 --decode > "$RUNNER_TEMP/certs.p12"
           security import "$RUNNER_TEMP/certs.p12" -k "$KC" -P "$MAC_CERTS_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild
+          # Developer ID G2 intermediate, so codesign/productbuild can build the full chain
+          curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer \
+            && security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KC" || echo "G2 intermediate already present or not downloadable"
+          security find-identity -v -p codesigning "$KC"
           security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KC"
           security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
 
