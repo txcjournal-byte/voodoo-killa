@@ -35,7 +35,42 @@ struct TimeParams
     bool  alternate = false;// reverse: alternate fwd/rev slices, repeat: odd repeats reversed
     float endMute = 0.0f;   // mute the last N beats of the segment
     float mix = 1.0f;       // amount of time-manipulated signal (AMOUNT macro)
+
+    // ---- Halftime Engine (modes half / quarter)
+    float slow = 0.0f;      // slow-down factor 1.5 / 2 / 3 / 4 (0 = mode default: half 2, quarter 4)
+    int   htMode = -1;      // 0 = TAPE (pitch drops), 1 = KEY (snapped to the nearest octave), 2 = HOLD (pitch kept); -1 = legacy pitchFollow
+    bool  reverse = false;  // play the halftime backwards
+    float brake = 0.0f;     // beats: glide from 1x into the slow speed at every loop start
+    float fade = 0.0f;      // beats: fade the effect in when it starts
+    float smoothMs = 0.0f;  // loop seam crossfade in ms (0 = 10 ms default)
+    bool  triplet = false;  // loop length x 2/3
 };
+
+enum HalftimeMode : int { htTape = 0, htKey = 1, htHold = 2 };
+
+inline bool isHalftimeMode (TimeMode m) noexcept { return m == TimeMode::half || m == TimeMode::quarter; }
+
+/** Slow-down factor of a halftime preset (2 = half speed). */
+inline float halftimeFactor (const TimeParams& t) noexcept
+{
+    if (t.slow >= 1.0f) return t.slow;
+    return t.mode == TimeMode::quarter ? 4.0f : 2.0f;
+}
+
+/** Halftime pitch mode (TAPE by default, like a tape machine / the classic trap halftime). */
+inline int halftimeMode (const TimeParams& t) noexcept
+{
+    if (t.htMode >= 0) return t.htMode;
+    return t.pitchFollow == 0 ? htHold : htTape;
+}
+
+/** Pitch correction (semitones) that snaps a tape halftime to the nearest octave (KEY mode). */
+inline float halftimeKeyCorrection (float factor) noexcept
+{
+    const float drop = -12.0f * std::log2 (std::max (1.0f, factor));
+    const float octave = 12.0f * std::round (drop / 12.0f);
+    return octave - drop;
+}
 
 struct PitchParams
 {

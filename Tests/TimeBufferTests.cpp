@@ -115,6 +115,7 @@ public:
         {
             TimeParams tp;
             tp.mode = TimeMode::half;
+            tp.htMode = htHold;
             const int L = (int) (2.0 * kSpb);
             auto sine = [] (int n) { return (float) std::sin (2.0 * juce::MathConstants<double>::pi * 220.0 * n / kSr); };
             auto run = render (tp, TriggerMode::always, 2.0, L * 2 + 10, sine);
@@ -125,6 +126,85 @@ public:
             expect (finite);
             expect (peak < 1.3f, "grain overlap stays near unity gain: " + juce::String (peak));
             expect (peak > 0.7f);
+        }
+
+        beginTest ("Halftime Engine: TAPE is the default and reads S + e / factor (1.5x, 2x, 3x, 4x)");
+        {
+            for (float factor : { 1.5f, 2.0f, 3.0f, 4.0f })
+            {
+                TimeParams tp;
+                tp.mode = TimeMode::half;
+                tp.slow = factor;
+                const int L = (int) (4.0 * kSpb);
+                auto run = render (tp, TriggerMode::always, 4.0, L + 100);
+                for (int e : { kXfade, L / 3, L - 10 })
+                    expectWithinAbsoluteError ((double) run.out[(size_t) e], e / (double) factor, 0.05);
+            }
+        }
+
+        beginTest ("Halftime Engine: BRAKE glides from 1x, so the loop start is seamless");
+        {
+            TimeParams tp;
+            tp.mode = TimeMode::half;
+            tp.brake = 1.0f;                       // one beat glide
+            const int L = (int) (4.0 * kSpb);
+            const int B = (int) kSpb;
+            auto run = render (tp, TriggerMode::always, 4.0, L * 2);
+            const int S = L;
+            // right after the loop start the head still runs at ~1x (close to the dry signal)
+            expectWithinAbsoluteError ((double) run.out[(size_t) (S + kXfade)], (double) (S + kXfade), 40.0);
+            // end of the glide: integral of the linear speed ramp
+            expectWithinAbsoluteError ((double) run.out[(size_t) (S + B)], S + B * 0.75, 1.0);
+            // after the glide: half speed
+            expectWithinAbsoluteError ((double) run.out[(size_t) (S + B + 1000)], S + B * 0.75 + 500.0, 1.0);
+        }
+
+        beginTest ("Halftime Engine: REVERSE plays the recent past backwards at half speed");
+        {
+            TimeParams tp;
+            tp.mode = TimeMode::half;
+            tp.reverse = true;
+            const int L = (int) (2.0 * kSpb);
+            auto run = render (tp, TriggerMode::always, 2.0, L * 2);
+            const int S = L;
+            for (int e : { kXfade, L / 2, L - 10 })
+                expectWithinAbsoluteError ((double) run.out[(size_t) (S + e)], S - e * 0.5, 0.05);
+        }
+
+        beginTest ("Halftime Engine: KEY snaps the pitch drop to the nearest octave");
+        {
+            expectWithinAbsoluteError (halftimeKeyCorrection (2.0f), 0.0f, 1.0e-4f);
+            expectWithinAbsoluteError (halftimeKeyCorrection (4.0f), 0.0f, 1.0e-4f);
+            expectWithinAbsoluteError (halftimeKeyCorrection (1.5f), -4.98f, 0.01f);   // -7.02 -> -12
+            expectWithinAbsoluteError (halftimeKeyCorrection (3.0f), -4.98f, 0.01f);   // -19.02 -> -24
+        }
+
+        beginTest ("Halftime Engine: FADE eases the effect in");
+        {
+            TimeParams tp;
+            tp.mode = TimeMode::half;
+            tp.fade = 4.0f;
+            const int L = (int) (4.0 * kSpb);
+            auto run = render (tp, TriggerMode::always, 4.0, L + 10);
+            // at 1/8 of the fade the output is still mostly dry
+            const int e = L / 8;
+            const double wet = e * 0.5, dry = e, g = 0.125;
+            expectWithinAbsoluteError ((double) run.out[(size_t) e], dry + (wet - dry) * g, 2.0);
+        }
+
+        beginTest ("Halftime Engine: HOLD with aligned grains stays at unity gain on a sine");
+        {
+            TimeParams tp;
+            tp.mode = TimeMode::half;
+            tp.htMode = htHold;
+            const int L = (int) (4.0 * kSpb);
+            auto sine = [] (int n) { return (float) std::sin (2.0 * juce::MathConstants<double>::pi * 330.0 * n / kSr); };
+            auto run = render (tp, TriggerMode::always, 4.0, L * 2, sine);
+            // with phase-aligned grains the overlap adds in phase: the RMS stays close to the input RMS
+            double sq = 0.0;
+            for (int n = L + 4000; n < 2 * L - 100; ++n) sq += (double) run.out[(size_t) n] * run.out[(size_t) n];
+            const double rms = std::sqrt (sq / (double) (L - 4100));
+            expectWithinAbsoluteError (rms, std::sqrt (0.5), 0.12);
         }
 
         beginTest ("tape stop slows to zero speed and fades out at the end");

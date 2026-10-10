@@ -141,9 +141,9 @@ void SpaceModule::process (float inL, float inR, bool active, double spb, float&
     {
         if (++silentSamples > (int) sr / 2)
         {
+            // tails have decayed below -100 dB: no need to clear the (large) delay buffer on the audio thread
             sleeping = true;
             reverb.reset();
-            delay.reset();
             fbL = fbR = shimL = shimR = 0.0f;
         }
     }

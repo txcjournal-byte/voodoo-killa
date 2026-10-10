@@ -91,6 +91,15 @@ void Engine::updateEffective (const EngineControls& c) noexcept
     mv.space = c.space;
     effective = applyMacros (base, mv);
 
+    // Halftime Engine: triplet loop and KEY mode (tape halftime snapped to the nearest octave)
+    if (isHalftimeMode (effective.time.mode))
+    {
+        if (effective.time.triplet)
+            effective.length = std::max (0.125f, effective.length * (2.0f / 3.0f));
+        if (halftimeMode (effective.time) == htKey && ! effective.time.reverse)
+            effective.pitch.semis += halftimeKeyCorrection (halftimeFactor (effective.time));
+    }
+
     pitch.setParams (effective.pitch);
     gate.setParams (effective.gate);
     filter.setParams (effective.filter);

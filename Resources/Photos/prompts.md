@@ -9,7 +9,7 @@ Shared style base:
 
 ## HALFCUT – Halftime
 
-### `halfcut_1.jpg` – Halfcut (halftime)
+### `halfcut_1.jpg` – Halfcut (tape halftime 2x)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a lone wooden cross in tall wet grass, leaning slightly
@@ -21,37 +21,37 @@ Black and white flash photograph at night, heavy film grain, underground trap mi
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: an empty street at night, single streetlight in fog, wet asphalt
 ```
 
-### `halfcut_3.jpg` – Quarter Death (quarter time)
+### `halfcut_3.jpg` – Triplet Drag (1.5x - fifth down)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a concrete highway overpass from below, pillars fading into mist
 ```
 
-### `halfcut_4.jpg` – NPC Mode (robotic lofi)
+### `halfcut_4.jpg` – Quarter Death (quarter time 4x)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a stack of old CRT televisions showing static in a dark room
 ```
 
-### `halfcut_5.jpg` – Sleepwalk (halftime + wobble)
+### `halfcut_5.jpg` – Brake In (glide into half)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: an unmade bed with crumpled sheets in a dark bedroom, curtains half open
 ```
 
-### `halfcut_6.jpg` – Slow Bleed (reverb tail)
+### `halfcut_6.jpg` – Reverse Half (half - backwards)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a chain-link fence at night with blurred lights behind it, rain
 ```
 
-### `halfcut_7.jpg` – Cooked (tape drive)
+### `halfcut_7.jpg` – Key Lock (1.5x - stays in key)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a cassette deck with the reels exposed, dust and scratches, close-up
 ```
 
-### `halfcut_8.jpg` – Drag Me Down (octave down)
+### `halfcut_8.jpg` – Slowed + Verb (half - hall - dark)
 
 ```
 Black and white flash photograph at night, heavy film grain, underground trap mixtape aesthetic, harsh flash, deep shadows, square 1:1, no text, no people's faces. Subject: a narrow concrete staircase leading down into darkness, one bare bulb

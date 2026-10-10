@@ -19,7 +19,7 @@ void TimeBuffer::clear()
 }
 
 // ===========================================================================
-void TimeEngine::Head::startGrains (int len) noexcept
+void TimeEngine::Head::startGrains() noexcept
 {
     // Slot 1 is mid-grain (full window gain) and currently reads exactly `pos`,
     // so a grain head started at "now" is sample-identical to the dry signal.
@@ -30,7 +30,7 @@ void TimeEngine::Head::startGrains (int len) noexcept
     grainCounter = len / 2;
 }
 
-void TimeEngine::Head::render (const TimeBuffer& buf, int len, float& l, float& r) noexcept
+void TimeEngine::Head::render (const TimeBuffer& buf, float& l, float& r) noexcept
 {
     if (! grain)
     {
@@ -52,7 +52,42 @@ void TimeEngine::Head::render (const TimeBuffer& buf, int len, float& l, float& 
     }
 }
 
-void TimeEngine::Head::advance (int len) noexcept
+double TimeEngine::Head::bestGrainStart (const TimeBuffer& buf, double src, int other) const noexcept
+{
+    // WSOLA-style: start the new grain where its waveform best matches what the other (fading) grain
+    // is about to play, so the overlap adds up in phase -> no comb filtering / "phasey" smear.
+    if (! align || dir != 1 || alignRange <= 0)
+        return src;
+
+    // fixed cost at any sample rate: the search grid scales with the rate (~11 ms window, ±10 ms range)
+    const int stride = std::max (2, alignRange / 220);
+    const int M = std::min (len / 4, alignRange * 11 / 10);
+    const auto ref = (int64_t) std::floor (grainSrc[other] + (double) grainAge[other]);
+    const auto base = (int64_t) std::floor (src);
+    const int kMin = -alignRange;
+    const int kMax = (int) std::min<int64_t> (alignRange, buf.newest() - base - M);   // never read the future
+    if (kMax < kMin)
+        return src;
+
+    // coarse search on the grid, then refine around the best lag
+    auto score = [&] (int k)
+    {
+        double s = 0.0;
+        for (int j = 0; j < M; j += stride)
+            s += (double) buf.monoAt (ref + j) * (double) buf.monoAt (base + k + j);
+        return s;
+    };
+    double best = -1.0e30;
+    int bestK = 0;
+    for (int k = kMin; k <= kMax; k += stride)
+        if (const double s = score (k); s > best) { best = s; bestK = k; }
+    const int lo = std::max (kMin, bestK - stride), hi = std::min (kMax, bestK + stride);
+    for (int k = lo; k <= hi; ++k)
+        if (const double s = score (k); s > best) { best = s; bestK = k; }
+    return src + (double) bestK;
+}
+
+void TimeEngine::Head::advance (const TimeBuffer& buf) noexcept
 {
     if (! grain)
         return;
@@ -63,7 +98,7 @@ void TimeEngine::Head::advance (int len) noexcept
     {
         const int slot = grainAge[0] >= grainAge[1] ? 0 : 1;
         grainAge[slot] = 0;
-        grainSrc[slot] = pos;
+        grainSrc[slot] = bestGrainStart (buf, pos, 1 - slot);
         grainCounter = len / 2;
     }
 }
@@ -74,6 +109,8 @@ void TimeEngine::prepare (double sampleRate, double bufferSeconds)
     sr = sampleRate;
     buffer.prepare (sampleRate, bufferSeconds);
     grainLen = std::max (256, (int) std::round (sampleRate * 0.046) & ~1);
+    holdGrainLen = std::max (512, (int) std::round (sampleRate * 0.080) & ~1);
+    alignRange = std::max (32, (int) std::round (sampleRate * 0.010));
     xfadeSamples = std::max (32, (int) std::round (sampleRate * 0.010));
     muteSmoother.setTime (0.002f, sampleRate);
     reset();
@@ -89,6 +126,7 @@ void TimeEngine::reset()
     currentKey = Key {};
     forceNewHead = true;
     repeatSegment = -1;
+    onSamples = 0;
     muteSmoother.reset (1.0f);
     lastOffsetFromNow = 0.0;
 }
@@ -113,10 +151,41 @@ TimeEngine::Target TimeEngine::computeTarget (const TimeParams& p, double e, dou
         case TimeMode::half:
         case TimeMode::quarter:
         {
-            const double rate = p.mode == TimeMode::half ? 0.5 : 0.25;
-            t.offset = e * rate;
-            t.speed = rate;
-            t.grain = ! follow;
+            // Halftime Engine: TAPE / KEY = varispeed read (pitch follows), HOLD = aligned grains (pitch kept)
+            const double r = 1.0 / std::max (1.0, (double) halftimeFactor (p));
+            const bool hold = halftimeMode (p) == htHold;
+            if (p.reverse)
+            {
+                t.offset = -e * r;          // the recent past, backwards, slowed
+                t.speed = -r;
+                t.dir = -1;
+            }
+            else
+            {
+                const double B = std::min ((double) p.brake * spb, L * 0.5);
+                if (B > 1.0 && e < B)
+                {
+                    // brake: speed glides 1 -> r, so the loop start is seamless (no jump)
+                    t.speed = 1.0 - (1.0 - r) * (e / B);
+                    t.offset = e - (1.0 - r) * e * e / (2.0 * B);
+                }
+                else if (B > 1.0)
+                {
+                    t.speed = r;
+                    t.offset = B * (1.0 + r) * 0.5 + r * (e - B);
+                }
+                else
+                {
+                    t.speed = r;
+                    t.offset = e * r;
+                }
+            }
+            t.grain = hold;
+            t.align = hold && ! p.reverse;
+            t.grainLen = hold ? holdGrainLen : 0;
+            if (p.smoothMs > 0.0f)
+                t.xfade = (int) std::clamp ((double) p.smoothMs * 0.001 * sr, 32.0, sr * 0.5);
+            juce::ignoreUnused (follow);
             break;
         }
 
@@ -273,7 +342,9 @@ void TimeEngine::process (float& l, float& r, const TimeParams& p, const Frame& 
     if (key != currentKey || forceNewHead)
     {
         int xf = xfadeSamples;
-        if (t.sliceLen > 0.0)
+        if (t.xfade > 0)
+            xf = t.xfade;
+        else if (t.sliceLen > 0.0)
             xf = std::clamp ((int) (t.sliceLen * 0.3), 32, xfadeSamples);
 
         if (started)
@@ -289,8 +360,11 @@ void TimeEngine::process (float& l, float& r, const TimeParams& p, const Frame& 
         current.pos = on ? std::min (now, now - e + t.offset) : now;
         current.fade = started ? 0.0f : 1.0f;
         current.fadeStep = 1.0f / (float) xf;
+        current.len = t.grainLen > 0 ? t.grainLen : grainLen;
+        current.align = t.align;
+        current.alignRange = alignRange;
         if (current.grain)
-            current.startGrains (grainLen);
+            current.startGrains();
 
         currentKey = key;
         forceNewHead = false;
@@ -303,23 +377,23 @@ void TimeEngine::process (float& l, float& r, const TimeParams& p, const Frame& 
     current.gain = on ? t.gain : 1.0f;
 
     float cl, cr;
-    current.render (buffer, grainLen, cl, cr);
+    current.render (buffer, cl, cr);
     const float cg = current.gain * current.fade;
     float outL = cl * cg, outR = cr * cg;
     current.fade = std::min (1.0f, current.fade + current.fadeStep);
-    current.advance (grainLen);
+    current.advance (buffer);
 
     // --- previous head keeps running at its last speed while it fades out
     if (previousActive)
     {
         float pl, pr;
-        previous.render (buffer, grainLen, pl, pr);
+        previous.render (buffer, pl, pr);
         const float pg = previous.gain * previous.fade;
         outL += pl * pg;
         outR += pr * pg;
         previous.fade -= previous.fadeStep;
         previous.pos = std::min (now, previous.pos + previous.speed);
-        previous.advance (grainLen);
+        previous.advance (buffer);
         if (previous.fade <= 0.0f)
             previousActive = false;
     }
@@ -328,7 +402,13 @@ void TimeEngine::process (float& l, float& r, const TimeParams& p, const Frame& 
     const bool muted = on && p.endMute > 0.0f && e >= L - (double) p.endMute * spb;
     const float m = muteSmoother.process (muted ? 0.0f : 1.0f);
 
-    const float mix = on || previousActive ? clamp01 (p.mix) : 1.0f;
+    // FADE: ease the halftime in after it starts
+    onSamples = on ? onSamples + 1 : 0;
+    float fadeGain = 1.0f;
+    if (on && isHalftimeMode (p.mode) && p.fade > 0.0f)
+        fadeGain = (float) std::min (1.0, (double) onSamples / std::max (1.0, (double) p.fade * spb));
+
+    const float mix = on || previousActive ? clamp01 (p.mix) * fadeGain : 1.0f;
     l = lerp (inL, outL * m, mix);
     r = lerp (inR, outR * m, mix);
 

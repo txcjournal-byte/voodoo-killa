@@ -51,14 +51,14 @@ def m(*parts):
 
 PRESETS = {
 "halfcut": [
-    ("Halfcut",       "halftime",          A,  4, m(time("half"))),
-    ("Slow Grave",    "halftime + dark",   A,  4, m(time("half"), filt("lp", 1800))),
-    ("Quarter Death", "quarter time",      E4, 4, m(time("quarter"))),
-    ("NPC Mode",      "robotic lofi",      A,  4, m(time("half"), lofi(bits=8, srate=16000))),
-    ("Sleepwalk",     "halftime + wobble", A,  4, m(time("half", pitchFollow=True), pitch(wobble=25, wobbleHz=0.5))),
-    ("Slow Bleed",    "reverb tail",       A,  4, m(time("half"), reverb(0.8, 0.35))),
-    ("Cooked",        "tape drive",        E4, 4, m(time("half"), drive("tape", 0.5), lofi(wow=0.3))),
-    ("Drag Me Down",  "octave down",       LB, 1, m(time("half"), pitch(semis=-12))),
+    ("Halfcut",       "tape halftime 2x",    A,  4, m(time("half"))),
+    ("Slow Grave",    "halftime + dark",     A,  4, m(time("half"), filt("lp", 1800))),
+    ("Triplet Drag",  "1.5x - fifth down",   A,  4, m(time("half", slow=1.5))),
+    ("Quarter Death", "quarter time 4x",     E4, 4, m(time("half", slow=4))),
+    ("Brake In",      "glide into half",     A,  4, m(time("half", brake="1/8", smooth=20))),
+    ("Reverse Half",  "half - backwards",    A,  2, m(time("half", reverse=True))),
+    ("Key Lock",      "1.5x - stays in key", A,  4, m(time("half", slow=1.5, htMode="key"))),
+    ("Slowed + Verb", "half - hall - dark",  A,  4, m(time("half", smooth=40), reverb(0.75, 0.35), filt("lp", 6000), lofi(wow=0.15))),
 ],
 "deadtape": [
     ("Flatline",      "stop 1 bar",          E4, 4,   m(time("stop", curve=0.7))),

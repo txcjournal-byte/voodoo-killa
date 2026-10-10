@@ -187,6 +187,17 @@ juce::var presetDataToVar (const PresetData& p)
         if (p.time.alternate)        t->setProperty ("alternate", true);
         if (p.time.endMute > 0.0f)   t->setProperty ("endMute", p.time.endMute);
         if (p.time.mix < 1.0f)       t->setProperty ("mix", p.time.mix);
+        if (isHalftimeMode (p.time.mode))
+        {
+            static const char* const htNames[] = { "tape", "key", "hold" };
+            if (p.time.slow >= 1.0f)    t->setProperty ("slow", p.time.slow);
+            if (p.time.htMode >= 0)     t->setProperty ("htMode", htNames[juce::jlimit (0, 2, p.time.htMode)]);
+            if (p.time.reverse)         t->setProperty ("reverse", true);
+            if (p.time.brake > 0.0f)    t->setProperty ("brake", rateToString (p.time.brake));
+            if (p.time.fade > 0.0f)     t->setProperty ("fade", p.time.fade);
+            if (p.time.smoothMs > 0.0f) t->setProperty ("smooth", p.time.smoothMs);
+            if (p.time.triplet)         t->setProperty ("triplet", true);
+        }
         root->setProperty ("time", t.get());
     }
 
@@ -306,6 +317,16 @@ PresetData presetDataFromVar (const juce::var& v)
         p.time.alternate = getBool (t, "alternate", false);
         p.time.endMute = getFloat (t, "endMute", 0.0f);
         p.time.mix = getFloat (t, "mix", 1.0f);
+
+        p.time.slow = getFloat (t, "slow", 0.0f);
+        const auto hm = t["htMode"].toString();
+        p.time.htMode = hm.equalsIgnoreCase ("tape") ? htTape : hm.equalsIgnoreCase ("key") ? htKey
+                      : hm.equalsIgnoreCase ("hold") ? htHold : -1;
+        p.time.reverse = getBool (t, "reverse", false);
+        p.time.brake = getRate (t, "brake", 0.0f);
+        p.time.fade = getFloat (t, "fade", 0.0f);
+        p.time.smoothMs = getFloat (t, "smooth", 0.0f);
+        p.time.triplet = getBool (t, "triplet", false);
     }
 
     if (auto q = v["pitch"]; q.isObject())

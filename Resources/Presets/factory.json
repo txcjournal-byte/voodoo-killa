@@ -91,7 +91,7 @@
   {
    "id": "halfcut_1",
    "name": "Halfcut",
-   "desc": "halftime",
+   "desc": "tape halftime 2x",
    "category": "halfcut",
    "photo": "halfcut_1.jpg",
    "trigger": "always",
@@ -118,97 +118,93 @@
   },
   {
    "id": "halfcut_3",
-   "name": "Quarter Death",
-   "desc": "quarter time",
+   "name": "Triplet Drag",
+   "desc": "1.5x - fifth down",
    "category": "halfcut",
    "photo": "halfcut_3.jpg",
-   "trigger": "every4",
+   "trigger": "always",
    "length": 4,
    "time": {
-    "mode": "quarter"
+    "mode": "half",
+    "slow": 1.5
    }
   },
   {
    "id": "halfcut_4",
-   "name": "NPC Mode",
-   "desc": "robotic lofi",
+   "name": "Quarter Death",
+   "desc": "quarter time 4x",
    "category": "halfcut",
    "photo": "halfcut_4.jpg",
-   "trigger": "always",
+   "trigger": "every4",
    "length": 4,
    "time": {
-    "mode": "half"
-   },
-   "lofi": {
-    "bits": 8,
-    "srate": 16000
+    "mode": "half",
+    "slow": 4
    }
   },
   {
    "id": "halfcut_5",
-   "name": "Sleepwalk",
-   "desc": "halftime + wobble",
+   "name": "Brake In",
+   "desc": "glide into half",
    "category": "halfcut",
    "photo": "halfcut_5.jpg",
    "trigger": "always",
    "length": 4,
    "time": {
     "mode": "half",
-    "pitchFollow": true
-   },
-   "pitch": {
-    "wobble": 25,
-    "wobbleHz": 0.5
+    "brake": "1/8",
+    "smooth": 20
    }
   },
   {
    "id": "halfcut_6",
-   "name": "Slow Bleed",
-   "desc": "reverb tail",
+   "name": "Reverse Half",
+   "desc": "half - backwards",
    "category": "halfcut",
    "photo": "halfcut_6.jpg",
    "trigger": "always",
-   "length": 4,
+   "length": 2,
    "time": {
-    "mode": "half"
-   },
-   "space": {
-    "reverbSize": 0.8,
-    "reverbMix": 0.35
+    "mode": "half",
+    "reverse": true
    }
   },
   {
    "id": "halfcut_7",
-   "name": "Cooked",
-   "desc": "tape drive",
+   "name": "Key Lock",
+   "desc": "1.5x - stays in key",
    "category": "halfcut",
    "photo": "halfcut_7.jpg",
-   "trigger": "every4",
+   "trigger": "always",
    "length": 4,
    "time": {
-    "mode": "half"
-   },
-   "drive": {
-    "type": "tape",
-    "amount": 0.5
-   },
-   "lofi": {
-    "wow": 0.3
+    "mode": "half",
+    "slow": 1.5,
+    "htMode": "key"
    }
   },
   {
    "id": "halfcut_8",
-   "name": "Drag Me Down",
-   "desc": "octave down",
+   "name": "Slowed + Verb",
+   "desc": "half - hall - dark",
    "category": "halfcut",
    "photo": "halfcut_8.jpg",
-   "trigger": "lastbeat",
-   "length": 1,
+   "trigger": "always",
+   "length": 4,
    "time": {
-    "mode": "half"
+    "mode": "half",
+    "smooth": 40
    },
-   "pitch": {
-    "semis": -12
+   "space": {
+    "reverbSize": 0.75,
+    "reverbMix": 0.35
+   },
+   "filter": {
+    "type": "lp",
+    "cutoff": 6000
+   },
+   "lofi": {
+    "wow": 0.15
    }
   },
   {

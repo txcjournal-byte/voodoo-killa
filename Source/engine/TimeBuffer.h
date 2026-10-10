@@ -43,6 +43,15 @@ public:
     /** Everything recorded before now is treated as silence (transport start). */
     void forgetHistory() noexcept { validFrom = writeIndex; }
 
+    /** Mono sample at an integer position (0 outside the valid recorded range). Used for grain alignment. */
+    float monoAt (int64_t i) const noexcept
+    {
+        if (i > newest() || i < validFrom || i < newest() - (mask - 8))
+            return 0.0f;
+        const auto k = (size_t) (i & mask);
+        return 0.5f * (left[k] + right[k]);
+    }
+
 private:
     std::vector<float> left, right;
     int64_t mask = 0;
@@ -81,7 +90,7 @@ public:
     void resync() noexcept { forceNewHead = true; }
 
     /** Transport (re)start: resync and never replay audio recorded before it. */
-    void restart() noexcept { buffer.forgetHistory(); forceNewHead = true; }
+    void restart() noexcept { buffer.forgetHistory(); forceNewHead = true; onSamples = 0; }
 
     const TimeBuffer& getBuffer() const noexcept { return buffer; }
 
@@ -101,10 +110,14 @@ private:
         double grainSrc[2] { 0.0, 0.0 };
         int    grainAge[2] { 0, 0 };
         int    grainCounter = 0;
+        int    len = 2048;      // grain length
+        bool   align = false;   // WSOLA-style alignment of new grains (pitch-preserving halftime)
+        int    alignRange = 0;
 
-        void startGrains (int grainLen) noexcept;
-        void render (const TimeBuffer& buf, int grainLen, float& l, float& r) noexcept;
-        void advance (int grainLen) noexcept;   // free-running (fading head)
+        void startGrains() noexcept;
+        void render (const TimeBuffer& buf, float& l, float& r) noexcept;
+        void advance (const TimeBuffer& buf) noexcept;
+        double bestGrainStart (const TimeBuffer& buf, double src, int otherSlot) const noexcept;
     };
 
     struct Key
@@ -124,6 +137,9 @@ private:
         int    dir = 1;
         int64_t slice = 0;
         double sliceLen = 0.0;
+        int    grainLen = 0;   // 0 = default
+        bool   align = false;
+        int    xfade = 0;      // 0 = default seam crossfade
     };
 
     Target computeTarget (const TimeParams& p, double e, double L, double spb, int64_t segKey) noexcept;
@@ -131,7 +147,10 @@ private:
     TimeBuffer buffer;
     double sr = 44100.0;
     int grainLen = 2048;
+    int holdGrainLen = 3528;
+    int alignRange = 512;
     int xfadeSamples = 441;
+    int64_t onSamples = 0;   // samples since the effect became active (FADE)
 
     Head current, previous;
     bool previousActive = false;

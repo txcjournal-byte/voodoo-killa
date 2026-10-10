@@ -31,6 +31,10 @@ namespace
         r.speed = lerp (a.speed, b.speed, t);
         r.endMute = lerp (a.endMute, b.endMute, t);
         r.mix = lerp (a.mix, b.mix, t);
+        // halftime: speed / mode / reverse / triplet switch at 0.5 (via pick), timings glide
+        r.brake = lerp (a.brake, b.brake, t);
+        r.fade = lerp (a.fade, b.fade, t);
+        r.smoothMs = lerp (a.smoothMs, b.smoothMs, t);
         return r;
     }
 

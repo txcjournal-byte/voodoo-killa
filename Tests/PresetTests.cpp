@@ -191,11 +191,12 @@ public:
             expectWithinAbsoluteError (mid.pitch.semis, -2.5f, 1.0e-5f);
 
             // trigger / time mode are discrete
-            const auto& h = lib.get (lib.findById ("halfcut_3"))->data;     // quarter, every4
+            const auto& h = lib.get (lib.findById ("halfcut_4"))->data;     // halftime 4x, every4
             const auto& r = lib.get (lib.findById ("backmask_1"))->data;    // reverse, last beat
             expect (morphPresets (h, r, 0.4f).trigger == TriggerMode::every4);
             expect (morphPresets (h, r, 0.6f).trigger == TriggerMode::lastBeat);
-            expect (morphPresets (h, r, 0.4f).time.mode == TimeMode::quarter);
+            expect (morphPresets (h, r, 0.4f).time.mode == TimeMode::half);
+            expectEquals (halftimeFactor (morphPresets (h, r, 0.4f).time), 4.0f);
             expect (morphPresets (h, r, 0.6f).time.mode == TimeMode::reverse);
 
             // module that is off on one side fades from neutral
