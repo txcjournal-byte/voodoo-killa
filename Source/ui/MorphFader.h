@@ -4,15 +4,17 @@
 
 namespace vk::ui
 {
-/** MORPH fader on a strip of tape: "A" left, "B" right. Greyed out while no B card is selected. */
+/** MORPH slider: chrome "A" / "B", glowing fill, chrome thumb. Works even without B (asks for one). */
 class MorphFader : public ParamControl
 {
 public:
     MorphFader (juce::RangedAudioParameter& p, std::function<void()> gestureEnded);
 
     void setMorphEnabled (bool enabled);
+    void setNames (const juce::String& a, const juce::String& b);
     /** Called when the fader is grabbed without a B card; returns true when a B is now available. */
     std::function<bool()> onNeedB;
+
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
     void mouseDrag (const juce::MouseEvent&) override;
@@ -23,10 +25,10 @@ private:
     juce::Rectangle<float> trackArea() const;
     float valueAt (float x) const;
     bool enabled = false;
-    float grabOffset = 0.0f;
+    juce::String nameA, nameB;
 };
 
-/** STEPS: 16 toggles (1 bar). */
+/** 16-step pattern editor (used by WHEN = Pattern, shown in a call-out). */
 class StepsBar : public juce::Component, public juce::SettableTooltipClient
 {
 public:
@@ -54,17 +56,19 @@ private:
     int lastPainted = -1;
 };
 
-/** TRIGGER: six framed buttons, the active one red. */
-class TriggerBar : public ParamControl
+/** WHEN: dropdown pill for the trigger (Always / Hold / End of 4 / End of 8 / Last beat / Pattern). */
+class WhenSelector : public ParamControl
 {
 public:
-    TriggerBar (juce::RangedAudioParameter& p, std::function<void()> gestureEnded);
+    WhenSelector (juce::RangedAudioParameter& p, juce::AudioProcessorValueTreeState& state, std::function<void()> gestureEnded);
     void paint (juce::Graphics&) override;
     void mouseUp (const juce::MouseEvent&) override;
-    juce::String getTooltip() override;
+    static juce::String labelFor (int index);
 
 private:
-    juce::Rectangle<float> buttonBounds (int i) const;
-    int buttonAt (juce::Point<float>) const;
+    juce::Rectangle<float> pillArea() const;
+    void showPatternEditor();
+    juce::AudioProcessorValueTreeState& state;
+    std::function<void()> gestureEnd;
 };
 } // namespace vk::ui

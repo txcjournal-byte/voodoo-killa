@@ -5,12 +5,13 @@
 
 namespace vk::ui
 {
-/** One bar of audio on a strip of paper: dry grey, wet red on top, red playhead, beat grid. */
+/** One bar of audio: dry dimmed, wet in blue, bright playhead, beat grid. */
 class Waveform : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     explicit Waveform (vk::EngineMeters&);
     void update();   // called from the editor timer
+    void setBpm (double bpm);
     void paint (juce::Graphics&) override;
 
 private:
@@ -18,9 +19,10 @@ private:
     std::array<float, vk::EngineMeters::kColumns> dry {}, wet {};
     float playhead = 0.0f;
     juce::Image background;
+    int bpm = 0, cachedBpm = -1;
 };
 
-/** The red thread: pin A -> pin B -> KILL PAD dot. Drawn by code as cubic Béziers arching above the cards. */
+/** The glowing thread: pin A -> pin B -> KILL PAD dot. Drawn by code as cubic Béziers arching above the cards. */
 class Thread : public juce::Component
 {
 public:

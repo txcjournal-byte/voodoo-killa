@@ -15,12 +15,20 @@ void TopBar::refresh()
 
 juce::Rectangle<float> TopBar::regionBounds (Region r) const
 {
-    // proportional layout of the reference design
-    static const float widths[] = { 0.07f, 0.29f, 0.07f, 0.11f, 0.15f, 0.08f, 0.08f, 0.1f, 0.1f };
-    auto b = getLocalBounds().toFloat().reduced (10.0f, 6.0f);
+    // widths in design units, scaled to the pill
+    static const float widths[] = { 20.0f, 132.0f, 20.0f, 34.0f, 60.0f, 28.0f, 26.0f, 28.0f };
+    float total = 0.0f;
+    for (auto w : widths) total += w;
+    total += 2.0f * kSepWidth;
+    auto b = getLocalBounds().toFloat().reduced (16.0f, 6.0f);
+    const float k = b.getWidth() / total;
     float x = b.getX();
-    for (int i = 0; i < (int) r; ++i) x += widths[i] * b.getWidth();
-    return { x, b.getY(), widths[(int) r] * b.getWidth(), b.getHeight() };
+    for (int i = 0; i < (int) r; ++i)
+    {
+        x += widths[i] * k;
+        if (i == (int) next || i == (int) ab) x += kSepWidth * k;
+    }
+    return { x, b.getY(), widths[(int) r] * k, b.getHeight() };
 }
 
 int TopBar::regionAt (juce::Point<float> p) const
@@ -33,70 +41,93 @@ int TopBar::regionAt (juce::Point<float> p) const
 
 void TopBar::paint (juce::Graphics& g)
 {
-    const auto b = getLocalBounds().toFloat();
-    Theme::drawPaper (g, b, 31337u, true);
+    const auto b = getLocalBounds().toFloat().reduced (1.0f);
+    {
+        juce::Path pill;
+        pill.addRoundedRectangle (b, b.getHeight() * 0.5f);
+        juce::DropShadow (Colours::glow.withAlpha (0.18f), 18, {}).drawForPath (g, pill);
+        g.setGradientFill (juce::ColourGradient (Colours::card2, 0.0f, b.getY(), Colours::well, 0.0f, b.getBottom(), false));
+        g.fillPath (pill);
+        g.setColour (Colours::line2);
+        g.strokePath (pill, juce::PathStrokeType (1.0f));
+    }
 
-    auto hl = [&] (Region r) { return hover == (int) r ? Colours::red : Colours::ink; };
-    auto sep = [&] (Region r)
+    auto hl = [&] (Region r, juce::Colour base) { return hover == (int) r ? Colours::accentL : base; };
+    auto sepAfter = [&] (Region r)
     {
         const auto rb = regionBounds (r);
-        g.setColour (Colours::ink.withAlpha (0.25f));
-        g.drawVerticalLine ((int) rb.getX(), rb.getY() + 4.0f, rb.getBottom() - 4.0f);
+        const float x = rb.getRight() + (regionBounds ((Region) (r + 1)).getX() - rb.getRight()) * 0.5f;
+        g.setColour (Colours::line2);
+        g.drawVerticalLine ((int) x, rb.getY() + 6.0f, rb.getBottom() - 6.0f);
     };
 
     // ◀ ▶
     for (auto r : { prev, next })
     {
-        const auto rb = regionBounds (r).withSizeKeepingCentre (10.0f, 16.0f);
+        const auto rb = regionBounds (r).withSizeKeepingCentre (7.0f, 10.0f);
         juce::Path tri;
         if (r == prev) tri.addTriangle (rb.getRight(), rb.getY(), rb.getRight(), rb.getBottom(), rb.getX(), rb.getCentreY());
         else           tri.addTriangle (rb.getX(), rb.getY(), rb.getX(), rb.getBottom(), rb.getRight(), rb.getCentreY());
-        g.setColour (hl (r));
+        g.setColour (hl (r, Colours::text2));
         g.fillPath (tri);
     }
 
-    // name
-    g.setColour (hover == name ? Colours::red : Colours::ink);
-    g.setFont (Theme::typewriter (16.0f));
-    g.drawFittedText (proc.getDisplayName().toUpperCase(), regionBounds (name).toNearestInt(), juce::Justification::centred, 1, 0.7f);
+    // name + "CATEGORY · NN / 08"
+    {
+        const auto rb = regionBounds (name);
+        g.setColour (hover == name ? Colours::accentL : Colours::text);
+        g.setFont (Theme::bold (15.0f));
+        g.drawFittedText (proc.getDisplayName().toUpperCase(), rb.withTrimmedBottom (rb.getHeight() * 0.4f).toNearestInt(),
+                          juce::Justification::centredBottom, 1, 0.65f);
+        juce::String sub;
+        const auto& a = proc.getSlotA();
+        if (a.valid)
+        {
+            if (a.info.factory && a.libraryIndex >= 0)
+                sub = a.info.category.toUpperCase() + juce::String (juce::CharPointer_UTF8 (" \xc2\xb7 "))
+                    + juce::String (a.info.indexInCategory + 1).paddedLeft ('0', 2) + " / 08";
+            else
+                sub = a.libraryIndex >= 0 ? juce::String ("USER PRESET") : juce::String ("MUTATED");
+        }
+        g.setColour (Colours::muted);
+        g.setFont (Theme::monoLight (7.0f, 0.22f));
+        g.drawFittedText (sub, rb.withTrimmedTop (rb.getHeight() * 0.62f).toNearestInt(), juce::Justification::centredTop, 1, 0.7f);
+    }
+    sepAfter (next);
 
     // ★
-    sep (star);
     const bool fav = proc.getSlotA().valid && proc.isFavourite (proc.getSlotA().info.id);
-    const auto sb = regionBounds (star).withSizeKeepingCentre (22.0f, 22.0f);
-    g.setColour (fav ? Colours::red : hl (star));
+    const auto sb = regionBounds (star).withSizeKeepingCentre (15.0f, 15.0f);
+    g.setColour (fav ? Colours::accentL : hl (star, Colours::text2));
     if (fav) g.fillPath (Theme::starIcon (sb));
-    else     g.strokePath (Theme::starIcon (sb), juce::PathStrokeType (1.6f));
+    else     g.strokePath (Theme::starIcon (sb), juce::PathStrokeType (1.3f));
 
-    // A | B (red = where the next plain click goes)
-    sep (ab);
+    // A | B segmented (chrome = where the next plain click goes)
     {
-        const auto rb = regionBounds (ab);
+        const auto rb = regionBounds (ab).withSizeKeepingCentre (regionBounds (ab).getWidth(), 22.0f);
+        g.setColour (Colours::well);
+        g.fillRoundedRectangle (rb, 11.0f);
+        g.setColour (Colours::line);
+        g.drawRoundedRectangle (rb, 11.0f, 1.0f);
         const bool bNext = proc.getClickSlot() == VoodooKillaAudioProcessor::Slot::B;
-        g.setFont (Theme::typewriter (18.0f));
-        g.setColour (! bNext ? Colours::red : Colours::ink);
-        g.drawText ("A", rb.withWidth (rb.getWidth() * 0.42f), juce::Justification::centredRight, false);
-        g.setColour (Colours::ink);
-        g.drawText ("|", rb, juce::Justification::centred, false);
-        g.setColour (bNext ? Colours::red : (proc.getSlotB().valid ? Colours::ink : Colours::grey));
-        g.drawText ("B", rb.withTrimmedLeft (rb.getWidth() * 0.58f), juce::Justification::centredLeft, false);
+        const auto left = rb.withWidth (rb.getWidth() * 0.5f).reduced (2.0f);
+        const auto right = rb.withTrimmedLeft (rb.getWidth() * 0.5f).reduced (2.0f);
+        Theme::drawChromePill (g, bNext ? right : left, 0.25f);
+        g.setFont (Theme::display (11.0f));
+        g.setColour (bNext ? Colours::text2 : Colours::well);
+        g.drawText ("A", left, juce::Justification::centred, false);
+        g.setColour (bNext ? Colours::well : (proc.getSlotB().valid ? Colours::text2 : Colours::muted));
+        g.drawText ("B", right, juce::Justification::centred, false);
     }
+    sepAfter (ab);
 
-    // ↶ ↷
-    sep (undo);
-    g.setColour (proc.canUndo() ? hl (undo) : Colours::grey);
-    g.fillPath (Theme::undoIcon (regionBounds (undo).withSizeKeepingCentre (22.0f, 22.0f), false));
-    g.setColour (proc.canRedo() ? hl (redo) : Colours::grey);
-    g.fillPath (Theme::undoIcon (regionBounds (redo).withSizeKeepingCentre (22.0f, 22.0f), true));
-
-    // 💾
-    sep (save);
-    g.setColour (hl (save));
-    g.fillPath (Theme::saveIcon (regionBounds (save).withSizeKeepingCentre (22.0f, 22.0f)));
-
-    // 🎲
-    sep (dice);
-    Theme::drawDice (g, regionBounds (dice).withSizeKeepingCentre (22.0f, 22.0f), hl (dice), Colours::paper);
+    // ↶ ↷ 💾
+    g.setColour (proc.canUndo() ? hl (undo, Colours::text2) : Colours::muted.withAlpha (0.5f));
+    g.fillPath (Theme::undoIcon (regionBounds (undo).withSizeKeepingCentre (15.0f, 15.0f), false));
+    g.setColour (proc.canRedo() ? hl (redo, Colours::text2) : Colours::muted.withAlpha (0.5f));
+    g.fillPath (Theme::undoIcon (regionBounds (redo).withSizeKeepingCentre (15.0f, 15.0f), true));
+    g.setColour (hl (save, Colours::text2));
+    g.fillPath (Theme::saveIcon (regionBounds (save).withSizeKeepingCentre (14.0f, 14.0f)));
 }
 
 void TopBar::mouseMove (const juce::MouseEvent& e)
@@ -136,19 +167,6 @@ void TopBar::mouseUp (const juce::MouseEvent& e)
         case undo: proc.undo(); break;
         case redo: proc.redo(); break;
         case save: showSaveDialog(); break;
-        case dice:
-        {
-            // cast a random A/B pair and morph halfway
-            auto& r = juce::Random::getSystemRandom();
-            const int a = proc.library.randomIndex ((uint32_t) r.nextInt() | 1u, proc.getCategoryLock() ? proc.getCurrentCategory() : -1, -1);
-            const int b = proc.library.randomIndex ((uint32_t) r.nextInt() | 1u, proc.getCategoryLock() ? proc.getCurrentCategory() : -1, a);
-            proc.loadPreset (a, VoodooKillaAudioProcessor::Slot::A, false);
-            proc.loadPreset (b, VoodooKillaAudioProcessor::Slot::B, false);
-            if (auto* m = proc.apvts.getParameter (ParamIDs::morph))
-                m->setValueNotifyingHost (0.5f);
-            proc.pushUndoSnapshot();
-            break;
-        }
         default: break;
     }
     repaint();
@@ -166,7 +184,6 @@ juce::String TopBar::getTooltip()
         case undo: return "Undo.";
         case redo: return "Redo.";
         case save: return "Save the current preset (A, B and morph) as a user preset.";
-        case dice: return "Random A/B pair, morphed halfway.";
         default:   return {};
     }
 }
@@ -221,7 +238,7 @@ public:
     SavePanel (VoodooKillaAudioProcessor& p, std::function<void()> onClose) : proc (p), close (std::move (onClose))
     {
         name.setText (proc.getSlotA().info.name.trimCharactersAtEnd ("*"), false);
-        name.setFont (Theme::typewriter (17.0f));
+        name.setFont (Theme::bold (16.0f));
         name.setJustification (juce::Justification::centredLeft);
         name.onReturnKey = [this] { save(); };
         name.onEscapeKey = [this] { finish(); };
@@ -234,11 +251,12 @@ public:
 
     void paint (juce::Graphics& g) override
     {
-        g.fillAll (juce::Colours::black.withAlpha (0.6f));
+        g.fillAll (Colours::bg.withAlpha (0.7f));
         const auto box = panel();
-        Theme::drawPaper (g, box, 99u, true);
-        g.setColour (Colours::ink);
-        g.setFont (Theme::marker (24.0f));
+        Theme::drawCard (g, box, 16.0f, 0.3f);
+        Theme::drawChromeText (g, "SAVE PRESET", box.withHeight (46.0f).reduced (16.0f, 0.0f), Theme::display (20.0f),
+                               juce::Justification::centredLeft, false);
+        return;
         g.drawText ("SAVE PRESET", box.withHeight (46.0f).reduced (16.0f, 0.0f), juce::Justification::centredLeft, false);
     }
 
@@ -309,18 +327,17 @@ KillButton::KillButton (VoodooKillaAudioProcessor& p) : proc (p)
 
 void KillButton::paint (juce::Graphics& g)
 {
-    auto r = getLocalBounds().toFloat().reduced (3.0f);
-    if (pressed) r = r.translated (1.0f, 1.0f);
-    g.setColour (juce::Colour (0xff0a0a0a));
-    g.fillRect (r);
-    g.setColour (isMouseOver() ? Colours::red.brighter (0.2f) : Colours::red);
-    g.drawRect (r, 2.5f);
+    auto r = getLocalBounds().toFloat().reduced (6.0f);
+    if (pressed) r = r.reduced (1.0f);
+    Theme::drawChromePill (g, r, isMouseOver() ? 0.85f : 0.55f);
 
-    auto content = r.reduced (8.0f, 6.0f);
-    const auto diceArea = content.removeFromRight (content.getHeight() * 0.7f).withSizeKeepingCentre (content.getHeight() * 0.62f, content.getHeight() * 0.62f);
-    g.setFont (Theme::marker (content.getHeight() * 0.9f));
-    g.drawFittedText ("KILL", content.toNearestInt(), juce::Justification::centred, 1, 0.6f);
-    Theme::drawDice (g, diceArea, Colours::red, juce::Colour (0xff0a0a0a));
+    auto content = r.reduced (r.getHeight() * 0.45f, 0.0f);
+    const float ds = r.getHeight() * 0.36f;
+    const auto diceArea = content.removeFromRight (ds + 4.0f).withSizeKeepingCentre (ds, ds);
+    g.setColour (Colours::well);
+    g.setFont (Theme::display (r.getHeight() * 0.48f));
+    g.drawFittedText ("KILL", content.toNearestInt(), juce::Justification::centred, 1, 0.7f);
+    Theme::drawDice (g, diceArea, Colours::well, juce::Colour (0xffd8dde7));
 }
 
 void KillButton::mouseDown (const juce::MouseEvent&)
@@ -348,8 +365,12 @@ void IconButton::paint (juce::Graphics& g)
 {
     const bool on = isOn && isOn();
     const auto r = getLocalBounds().toFloat().reduced (2.0f);
-    g.setColour (on ? Colours::red : (isMouseOver() ? Colours::paper : Colours::paper.withAlpha (0.75f)));
-    g.fillPath (kind == Kind::lock ? Theme::lockIcon (r, on) : Theme::gearIcon (r));
+    g.setColour (Colours::card2);
+    g.fillEllipse (r);
+    g.setColour (on ? Colours::accentL : (isMouseOver() ? Colours::line2.withAlpha (0.6f) : Colours::line2));
+    g.drawEllipse (r.reduced (0.5f), 1.0f);
+    g.setColour (on ? Colours::accentL : (isMouseOver() ? Colours::text : Colours::text2));
+    g.fillPath (kind == Kind::lock ? Theme::lockIcon (r.reduced (r.getWidth() * 0.32f), on) : Theme::gearIcon (r.reduced (r.getWidth() * 0.3f)));
 }
 
 void IconButton::mouseUp (const juce::MouseEvent& e)

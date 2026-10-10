@@ -1,103 +1,61 @@
 #include "Theme.h"
 #include <BinaryData.h>
-#include <map>
 
 namespace vk::ui
 {
 namespace
 {
-    juce::Typeface::Ptr loadTypeface (const char* originalName)
+    const void* findResource (const juce::String& originalName, int& size)
     {
         for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
-        {
-            if (juce::String (BinaryData::originalFilenames[i]) == originalName)
-            {
-                int size = 0;
-                if (const char* data = BinaryData::getNamedResource (BinaryData::namedResourceList[i], size))
-                    return juce::Typeface::createSystemTypefaceFor (data, (size_t) size);
-            }
-        }
+            if (originalName == BinaryData::originalFilenames[i])
+                return BinaryData::getNamedResource (BinaryData::namedResourceList[i], size);
+        size = 0;
         return nullptr;
     }
 
-    juce::Font makeFont (const juce::Typeface::Ptr& tf, float height, const char* fallbackName)
+    juce::Typeface::Ptr loadTypeface (const char* originalName)
+    {
+        int size = 0;
+        if (const void* data = findResource (originalName, size))
+            return juce::Typeface::createSystemTypefaceFor (data, (size_t) size);
+        return nullptr;
+    }
+
+    juce::Font makeFont (const juce::Typeface::Ptr& tf, float height, const char* fallback, bool boldFallback)
     {
         if (tf != nullptr)
             return juce::Font (juce::FontOptions (tf).withHeight (height));
-        return juce::Font (juce::FontOptions (fallbackName, height, juce::Font::bold));
+        return juce::Font (juce::FontOptions (fallback, height, boldFallback ? juce::Font::bold : juce::Font::plain));
     }
 
-    uint32_t mix (uint32_t x)
-    {
-        x ^= x >> 16; x *= 0x7feb352dU; x ^= x >> 15; x *= 0x846ca68bU; x ^= x >> 16;
-        return x;
-    }
-
-    float noise01 (uint32_t& s)
-    {
-        s = mix (s + 0x9E3779B9u);
-        return (float) (s >> 8) / 16777216.0f;
-    }
-
-    juce::Image makeGrainTile (juce::Colour base, float amount, int fibres, uint32_t seed)
-    {
-        constexpr int size = 256;
-        juce::Image img (juce::Image::RGB, size, size, false);
-        juce::Image::BitmapData bd (img, juce::Image::BitmapData::writeOnly);
-        uint32_t s = seed;
-        for (int y = 0; y < size; ++y)
-        {
-            for (int x = 0; x < size; ++x)
-            {
-                const float n = (noise01 (s) - 0.5f) * amount;
-                bd.setPixelColour (x, y, base.brighter (n > 0 ? n : 0.0f).darker (n < 0 ? -n : 0.0f));
-            }
-        }
-        juce::Graphics g (img);
-        for (int i = 0; i < fibres; ++i)
-        {
-            const float x = noise01 (s) * size, y = noise01 (s) * size;
-            const float a = noise01 (s) * juce::MathConstants<float>::twoPi;
-            const float len = 4.0f + noise01 (s) * 18.0f;
-            g.setColour (base.darker (0.25f + noise01 (s) * 0.3f).withAlpha (0.18f));
-            g.drawLine (x, y, x + std::cos (a) * len, y + std::sin (a) * len, 0.6f);
-        }
-        return img;
-    }
-}
-
-// ===========================================================================
-// Fonts and bitmaps live in ThemeResources, owned (shared) by the open editors.
-// Nothing graphical has static storage duration: static destructors run while Windows unloads the
-// plugin DLL (loader lock held), and releasing DirectWrite fonts / images there can hang the host.
-ThemeResources::ThemeResources()
-{
-    typewriterFace = loadTypeface ("SpecialElite-Regular.ttf");
-    markerFace = loadTypeface ("PermanentMarker-Regular.ttf");
-}
-
-ThemeResources::~ThemeResources() = default;
-
-namespace
-{
     ThemeResources& res()
     {
-        // The editor holds a SharedResourcePointer, so this only bumps a reference count.
+        // the editor holds a SharedResourcePointer, so this only bumps a reference count
         juce::SharedResourcePointer<ThemeResources> ptr;
         return *ptr;
     }
 }
 
-juce::Font Theme::typewriter (float h)
+// ===========================================================================
+// Nothing graphical has static storage duration: static destructors run while Windows unloads the plugin
+// DLL (loader lock held), and releasing DirectWrite fonts / images there can hang the host.
+ThemeResources::ThemeResources()
 {
-    return makeFont (res().typewriterFace, h, "Courier New");
+    displayFace   = loadTypeface ("Archivo-BlackItalicExpanded.ttf");
+    boldFace      = loadTypeface ("Archivo-ExtraBoldItalic.ttf");
+    monoFace      = loadTypeface ("IBMPlexMono-Medium.ttf");
+    monoLightFace = loadTypeface ("IBMPlexMono-Regular.ttf");
 }
 
-juce::Font Theme::marker (float h)
-{
-    return makeFont (res().markerFace, h, "Arial");
-}
+ThemeResources::~ThemeResources() = default;
 
+juce::Font Theme::display (float h)  { return makeFont (res().displayFace, h, "Arial", true); }
+juce::Font Theme::bold (float h)     { return makeFont (res().boldFace, h, "Arial", true); }
+juce::Font Theme::mono (float h, float tracking)      { return makeFont (res().monoFace, h, "Courier New", false).withExtraKerningFactor (tracking); }
+juce::Font Theme::monoLight (float h, float tracking) { return makeFont (res().monoLightFace, h, "Courier New", false).withExtraKerningFactor (tracking); }
+
+// ===========================================================================
 juce::Image Theme::getAsset (const juce::String& fileName)
 {
     auto& cache = res().images;
@@ -105,138 +63,142 @@ juce::Image Theme::getAsset (const juce::String& fileName)
         return it->second;
 
     juce::Image img;
-    for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
-    {
-        if (juce::String (BinaryData::originalFilenames[i]) == fileName)
-        {
-            int size = 0;
-            if (const char* data = BinaryData::getNamedResource (BinaryData::namedResourceList[i], size))
-                img = juce::ImageFileFormat::loadFrom (data, (size_t) size);   // not ImageCache: freed with the editor
-            break;
-        }
-    }
+    int size = 0;
+    if (const void* data = findResource (fileName, size))
+        img = juce::ImageFileFormat::loadFrom (data, (size_t) size);   // not ImageCache: freed with the editor
     cache[fileName] = img;
     return img;
 }
 
-const juce::Image& Theme::backgroundTile()
+juce::Image Theme::photo (const juce::String& fileName, bool& isPlaceholder)
 {
-    auto& r = res();
-    if (! r.backgroundTile.isValid())
+    auto src = getAsset (fileName);
+    isPlaceholder = ! src.isValid();
+    const auto key = isPlaceholder ? juce::String ("placeholder.jpg") : fileName;
+    if (isPlaceholder)
+        src = getAsset (key);
+
+    auto& cache = res().photos;
+    if (auto it = cache.find (key); it != cache.end())
+        return it->second;
+    if (! src.isValid())
+        return {};
+
+    // grayscale, a touch more contrast, cool blue shadows (matches the TrapWin product shots)
+    juce::Image out (juce::Image::RGB, src.getWidth(), src.getHeight(), false);
     {
-        auto asset = getAsset ("background.png");
-        r.backgroundTile = asset.isValid() ? asset : makeGrainTile (Colours::background, 0.35f, 40, 1234u);
-    }
-    return r.backgroundTile;
-}
-
-const juce::Image& Theme::paperTile()
-{
-    auto& r = res();
-    if (! r.paperTile.isValid())
-    {
-        auto asset = getAsset ("paper.png");
-        r.paperTile = asset.isValid() ? asset : makeGrainTile (Colours::paper, 0.12f, 260, 777u);
-    }
-    return r.paperTile;
-}
-
-void Theme::fillBackground (juce::Graphics& g, juce::Rectangle<float> area)
-{
-    g.setTiledImageFill (backgroundTile(), 0, 0, 1.0f);
-    g.fillRect (area);
-}
-
-void Theme::drawPaper (juce::Graphics& g, juce::Rectangle<float> r, uint32_t seed, bool torn, juce::Colour tint)
-{
-    juce::Path shape;
-    if (torn)
-    {
-        // decent, subtle torn edges: small jitter along each side
-        uint32_t s = seed;
-        const float step = 6.0f, j = 1.6f;
-        shape.startNewSubPath (r.getX(), r.getY());
-        for (float x = r.getX() + step; x < r.getRight(); x += step) shape.lineTo (x, r.getY() + noise01 (s) * j);
-        for (float y = r.getY() + step; y < r.getBottom(); y += step) shape.lineTo (r.getRight() - noise01 (s) * j, y);
-        for (float x = r.getRight() - step; x > r.getX(); x -= step) shape.lineTo (x, r.getBottom() - noise01 (s) * j);
-        for (float y = r.getBottom() - step; y > r.getY(); y -= step) shape.lineTo (r.getX() + noise01 (s) * j, y);
-        shape.closeSubPath();
-    }
-    else
-    {
-        shape.addRectangle (r);
-    }
-
-    // shadow
-    g.setColour (juce::Colours::black.withAlpha (0.45f));
-    g.fillPath (shape, juce::AffineTransform::translation (1.5f, 2.0f));
-
-    const auto& tile = paperTile();
-    const int ox = (int) (mix (seed) % 200), oy = (int) (mix (seed * 3u + 1u) % 200);
-    g.setFillType (juce::FillType (tile, juce::AffineTransform::translation ((float) -ox, (float) -oy)));
-    g.fillPath (shape);
-
-    if (tint != Colours::paper)
-    {
-        g.setColour (tint.withAlpha (0.55f));
-        g.fillPath (shape);
-    }
-
-    // gentle darkening towards the edges
-    juce::ColourGradient vign (juce::Colours::transparentBlack, r.getCentreX(), r.getCentreY(),
-                               juce::Colours::black.withAlpha (0.12f), r.getX(), r.getY(), true);
-    g.setGradientFill (vign);
-    g.fillPath (shape);
-}
-
-void Theme::drawTape (juce::Graphics& g, juce::Rectangle<float> r, float angle, uint32_t seed, juce::Colour tint)
-{
-    for (int i = 1; i <= 3; ++i)
-    {
-        if (auto img = getAsset ("tape_" + juce::String (i) + ".png"); img.isValid() && (int) (seed % 3) + 1 == i)
+        juce::Image::BitmapData in (src, juce::Image::BitmapData::readOnly);
+        juce::Image::BitmapData o (out, juce::Image::BitmapData::writeOnly);
+        for (int y = 0; y < src.getHeight(); ++y)
         {
-            juce::Graphics::ScopedSaveState ss (g);
-            g.addTransform (juce::AffineTransform::rotation (angle, r.getCentreX(), r.getCentreY()));
-            g.drawImage (img, r, juce::RectanglePlacement::stretchToFit);
-            return;
+            for (int x = 0; x < src.getWidth(); ++x)
+            {
+                const auto c = in.getPixelColour (x, y);
+                float l = 0.299f * c.getFloatRed() + 0.587f * c.getFloatGreen() + 0.114f * c.getFloatBlue();
+                l = juce::jlimit (0.0f, 1.0f, (l - 0.5f) * 1.08f + 0.5f - 0.04f);
+                const float shadow = 1.0f - l;
+                o.setPixelColour (x, y, juce::Colour::fromFloatRGBA (l * (1.0f - 0.06f * shadow),
+                                                                    l * (1.0f - 0.02f * shadow),
+                                                                    juce::jmin (1.0f, l + 0.05f * shadow * l + 0.015f), 1.0f));
+            }
         }
     }
+    cache[key] = out;
+    return out;
+}
 
+// ===========================================================================
+void Theme::drawBackground (juce::Graphics& g, juce::Rectangle<float> r)
+{
+    g.setColour (Colours::bg);
+    g.fillRect (r);
+
+    juce::ColourGradient top (Colours::glow.withAlpha (0.22f), r.getX() + r.getWidth() * 0.72f, r.getY() - r.getHeight() * 0.10f,
+                              Colours::glow.withAlpha (0.0f), r.getX() + r.getWidth() * 0.72f + 620.0f, r.getY() + 220.0f, true);
+    g.setGradientFill (top);
+    g.fillRect (r);
+
+    juce::ColourGradient low (Colours::glow.withAlpha (0.10f), r.getX(), r.getBottom() + 40.0f,
+                              Colours::glow.withAlpha (0.0f), r.getX() + 520.0f, r.getBottom() - 200.0f, true);
+    g.setGradientFill (low);
+    g.fillRect (r);
+}
+
+void Theme::drawCard (juce::Graphics& g, juce::Rectangle<float> r, float radius, float glow)
+{
     juce::Path p;
-    uint32_t s = seed;
-    const float step = 3.0f;
-    p.startNewSubPath (r.getX(), r.getY());
-    p.lineTo (r.getRight(), r.getY());
-    for (float y = r.getY() + step; y < r.getBottom(); y += step) p.lineTo (r.getRight() - noise01 (s) * 2.0f, y);
-    p.lineTo (r.getRight(), r.getBottom());
-    p.lineTo (r.getX(), r.getBottom());
-    for (float y = r.getBottom() - step; y > r.getY(); y -= step) p.lineTo (r.getX() + noise01 (s) * 2.0f, y);
-    p.closeSubPath();
-    p.applyTransform (juce::AffineTransform::rotation (angle, r.getCentreX(), r.getCentreY()));
+    p.addRoundedRectangle (r, radius);
+    if (glow > 0.0f)
+        juce::DropShadow (Colours::glow.withAlpha (glow), 22, {}).drawForPath (g, p);
 
-    g.setColour (juce::Colours::black.withAlpha (0.35f));
-    g.fillPath (p, juce::AffineTransform::translation (1.0f, 1.5f));
-    g.setFillType (juce::FillType (paperTile(), juce::AffineTransform::translation ((float) -(int) (seed % 97), 0.0f)));
+    juce::ColourGradient fill (Colours::card2, r.getX(), r.getY(), Colours::card, r.getX(), r.getBottom(), false);
+    g.setGradientFill (fill);
     g.fillPath (p);
-    g.setColour (tint.withAlpha (tint.getSaturation() > 0.5f ? 0.92f : 0.6f));
+    g.setColour (Colours::line);
+    g.strokePath (p, juce::PathStrokeType (1.0f));
+}
+
+void Theme::drawWell (juce::Graphics& g, juce::Rectangle<float> r, float radius)
+{
+    g.setColour (Colours::well);
+    g.fillRoundedRectangle (r, radius);
+    g.setColour (Colours::line);
+    g.drawRoundedRectangle (r.reduced (0.5f), radius, 1.0f);
+}
+
+juce::ColourGradient Theme::chromeGradient (juce::Rectangle<float> r)
+{
+    juce::ColourGradient grad (juce::Colour (0xfff4f6fb), r.getX(), r.getY(), juce::Colour (0xffe6eaf2), r.getX(), r.getBottom(), false);
+    grad.addColour (0.48, juce::Colour (0xffc9d0dd));
+    grad.addColour (0.52, juce::Colour (0xff8e98ab));
+    return grad;
+}
+
+void Theme::drawChromePill (juce::Graphics& g, juce::Rectangle<float> r, float glow)
+{
+    juce::Path p;
+    p.addRoundedRectangle (r, r.getHeight() * 0.5f);
+    if (glow > 0.0f)
+        juce::DropShadow (Colours::glow.withAlpha (glow), 16, {}).drawForPath (g, p);
+    g.setGradientFill (chromeGradient (r));
+    g.fillPath (p);
+    g.setColour (juce::Colours::white.withAlpha (0.7f));
+    g.drawLine (r.getX() + r.getHeight() * 0.5f, r.getY() + 0.8f, r.getRight() - r.getHeight() * 0.5f, r.getY() + 0.8f, 0.8f);
+}
+
+void Theme::drawChromeText (juce::Graphics& g, const juce::String& text, juce::Rectangle<float> area,
+                            const juce::Font& font, juce::Justification just, bool glow)
+{
+    juce::GlyphArrangement ga;
+    ga.addFittedText (font, text, area.getX(), area.getY(), area.getWidth(), area.getHeight(), just, 1, 0.8f);
+    juce::Path p;
+    ga.createPath (p);
+    if (p.isEmpty())
+        return;
+
+    if (glow)
+        juce::DropShadow (Colours::glow.withAlpha (0.55f), 12, {}).drawForPath (g, p);
+
+    const auto b = p.getBounds();
+    juce::ColourGradient chrome (juce::Colour (0xff9aa3b6), b.getX(), b.getY(), juce::Colour (0xfff7f9fd), b.getX(), b.getBottom(), false);
+    chrome.addColour (0.32, juce::Colour (0xfff5f7fc));
+    chrome.addColour (0.47, juce::Colour (0xff9099ad));
+    chrome.addColour (0.50, juce::Colour (0xff151b29));
+    chrome.addColour (0.57, juce::Colour (0xff6f7a90));
+    chrome.addColour (0.82, juce::Colour (0xffdfe5ef));
+    g.setGradientFill (chrome);
     g.fillPath (p);
 }
 
-void Theme::drawPin (juce::Graphics& g, juce::Point<float> c, float radius)
+void Theme::drawGlowDot (juce::Graphics& g, juce::Point<float> c, float radius, float glowRadius)
 {
-    if (auto img = getAsset ("pin.png"); img.isValid())
-    {
-        g.drawImage (img, juce::Rectangle<float> (radius * 2.6f, radius * 2.6f).withCentre (c), juce::RectanglePlacement::centred);
-        return;
-    }
-    g.setColour (juce::Colours::black.withAlpha (0.45f));
-    g.fillEllipse (juce::Rectangle<float> (radius * 2.0f, radius * 2.0f).withCentre (c.translated (1.5f, 2.0f)));
-    juce::ColourGradient grad (Colours::red.brighter (0.5f), c.x - radius * 0.4f, c.y - radius * 0.5f,
-                               Colours::redDark.darker (0.4f), c.x + radius, c.y + radius, true);
-    g.setGradientFill (grad);
+    juce::ColourGradient glow (Colours::accent.withAlpha (0.75f), c.x, c.y, Colours::accent.withAlpha (0.0f), c.x + glowRadius, c.y, true);
+    g.setGradientFill (glow);
+    g.fillEllipse (juce::Rectangle<float> (glowRadius * 2.0f, glowRadius * 2.0f).withCentre (c));
+    g.setColour (Colours::accentL);
+    g.drawEllipse (juce::Rectangle<float> (radius * 3.2f, radius * 3.2f).withCentre (c), 1.2f);
+    g.setColour (Colours::text);
     g.fillEllipse (juce::Rectangle<float> (radius * 2.0f, radius * 2.0f).withCentre (c));
-    g.setColour (juce::Colours::white.withAlpha (0.7f));
-    g.fillEllipse (juce::Rectangle<float> (radius * 0.55f, radius * 0.45f).withCentre (c.translated (-radius * 0.35f, -radius * 0.4f)));
 }
 
 void Theme::drawLogo (juce::Graphics& g, juce::Rectangle<float> area)
@@ -244,42 +206,13 @@ void Theme::drawLogo (juce::Graphics& g, juce::Rectangle<float> area)
     const bool hiDpi = g.getInternalContext().getPhysicalPixelScaleFactor() > 1.01f;
     auto img = getAsset (hiDpi ? "logo@2x.png" : "logo.png");
     if (! img.isValid())
-        img = getAsset ("logo.png");
+        img = getAsset ("logo@2x.png");
     if (img.isValid())
     {
-        g.drawImage (img, area, juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid | juce::RectanglePlacement::onlyReduceInSize);
+        g.drawImage (img, area, juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid);
         return;
     }
-
-    // placeholder logo (code-drawn) until Resources/Logo/logo.png exists
-    auto f = marker (area.getHeight() * 0.92f);
-    juce::GlyphArrangement ga;
-    ga.addLineOfText (f, "VOODOO", area.getX(), area.getBottom() - area.getHeight() * 0.18f);
-    const float w1 = ga.getBoundingBox (0, -1, true).getWidth();
-    juce::Path p1;
-    ga.createPath (p1);
-    g.setColour (juce::Colours::black);
-    g.fillPath (p1, juce::AffineTransform::translation (2.0f, 3.0f));
-    g.setColour (Colours::paper);
-    g.fillPath (p1);
-
-    juce::GlyphArrangement gb;
-    gb.addLineOfText (f, "KILLA", area.getX() + w1 + area.getHeight() * 0.12f, area.getBottom() - area.getHeight() * 0.18f);
-    juce::Path p2;
-    gb.createPath (p2);
-    g.setColour (juce::Colours::black);
-    g.fillPath (p2, juce::AffineTransform::translation (2.0f, 3.0f));
-    g.setColour (Colours::red);
-    g.fillPath (p2);
-}
-
-juce::Image Theme::photo (const juce::String& fileName, bool& isPlaceholder)
-{
-    auto img = getAsset (fileName);
-    isPlaceholder = ! img.isValid();
-    if (isPlaceholder)
-        img = getAsset ("placeholder.jpg");
-    return img;
+    drawChromeText (g, "TRAPWIN", area, display (area.getHeight() * 0.6f), juce::Justification::centredLeft);
 }
 
 // ===========================================================================
@@ -324,7 +257,7 @@ void Theme::drawDice (juce::Graphics& g, juce::Rectangle<float> r, juce::Colour 
 {
     r = r.reduced (r.getWidth() * 0.08f);
     g.setColour (body);
-    g.fillRoundedRectangle (r, r.getWidth() * 0.2f);
+    g.fillRoundedRectangle (r, r.getWidth() * 0.22f);
     g.setColour (pips);
     const float d = r.getWidth() * 0.18f;
     auto pip = [&] (float fx, float fy) { g.fillEllipse (r.getX() + r.getWidth() * fx - d * 0.5f, r.getY() + r.getHeight() * fy - d * 0.5f, d, d); };
@@ -376,32 +309,29 @@ juce::Path Theme::gearIcon (juce::Rectangle<float> r)
 // ===========================================================================
 KillaLookAndFeel::KillaLookAndFeel()
 {
-    setColour (juce::PopupMenu::backgroundColourId, Colours::ink);
-    setColour (juce::PopupMenu::textColourId, Colours::paper);
-    setColour (juce::PopupMenu::highlightedBackgroundColourId, Colours::red);
-    setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
-    setColour (juce::PopupMenu::headerTextColourId, Colours::grey);
-    setColour (juce::TooltipWindow::backgroundColourId, Colours::paper);
-    setColour (juce::TooltipWindow::textColourId, Colours::ink);
-    setColour (juce::AlertWindow::backgroundColourId, Colours::ink);
-    setColour (juce::AlertWindow::textColourId, Colours::paper);
-    setColour (juce::AlertWindow::outlineColourId, Colours::red);
-    setColour (juce::TextEditor::backgroundColourId, Colours::paper);
-    setColour (juce::TextEditor::textColourId, Colours::ink);
-    setColour (juce::TextEditor::highlightColourId, Colours::red.withAlpha (0.4f));
-    setColour (juce::TextEditor::outlineColourId, Colours::greyDark);
-    setColour (juce::TextEditor::focusedOutlineColourId, Colours::red);
-    setColour (juce::TextButton::buttonColourId, Colours::ink);
-    setColour (juce::TextButton::textColourOffId, Colours::paper);
-    setColour (juce::TextButton::buttonOnColourId, Colours::red);
-    setColour (juce::ComboBox::outlineColourId, Colours::red);
+    setColour (juce::PopupMenu::backgroundColourId, Colours::card);
+    setColour (juce::PopupMenu::textColourId, Colours::text);
+    setColour (juce::PopupMenu::highlightedBackgroundColourId, Colours::accent.withAlpha (0.25f));
+    setColour (juce::PopupMenu::highlightedTextColourId, Colours::text);
+    setColour (juce::PopupMenu::headerTextColourId, Colours::accent);
+    setColour (juce::TooltipWindow::backgroundColourId, Colours::card2);
+    setColour (juce::TooltipWindow::textColourId, Colours::text);
+    setColour (juce::TextEditor::backgroundColourId, Colours::well);
+    setColour (juce::TextEditor::textColourId, Colours::text);
+    setColour (juce::TextEditor::highlightColourId, Colours::accent.withAlpha (0.35f));
+    setColour (juce::TextEditor::outlineColourId, Colours::line2);
+    setColour (juce::TextEditor::focusedOutlineColourId, Colours::accentL);
+    setColour (juce::CaretComponent::caretColourId, Colours::accentL);
+    setColour (juce::TextButton::buttonColourId, Colours::card2);
+    setColour (juce::TextButton::textColourOffId, Colours::text);
+    setColour (juce::TextButton::textColourOnId, Colours::well);
 }
 
 juce::Rectangle<int> KillaLookAndFeel::getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos, juce::Rectangle<int> parentArea)
 {
-    const auto f = Theme::typewriter (13.0f);
-    const int w = juce::jmin (320, juce::GlyphArrangement::getStringWidthInt (f, tipText) + 18);
-    const int h = 24;
+    const auto f = Theme::monoLight (11.5f, 0.02f);
+    const int w = juce::jmin (340, juce::GlyphArrangement::getStringWidthInt (f, tipText) + 24);
+    const int h = 26;
     return juce::Rectangle<int> (screenPos.x > parentArea.getCentreX() ? screenPos.x - (w + 12) : screenPos.x + 16,
                                  screenPos.y > parentArea.getCentreY() ? screenPos.y - (h + 8) : screenPos.y + 16, w, h)
                .constrainedWithin (parentArea);
@@ -409,23 +339,96 @@ juce::Rectangle<int> KillaLookAndFeel::getTooltipBounds (const juce::String& tip
 
 void KillaLookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height)
 {
-    g.fillAll (Colours::paper);
-    g.setColour (Colours::ink);
-    g.drawRect (0, 0, width, height, 1);
-    g.setFont (Theme::typewriter (13.0f));
-    g.drawFittedText (text, 8, 0, width - 16, height, juce::Justification::centredLeft, 1);
+    const auto r = juce::Rectangle<float> (0.0f, 0.0f, (float) width, (float) height);
+    g.fillAll (Colours::card2);
+    g.setColour (Colours::line2);
+    g.drawRect (r, 1.0f);
+    g.setColour (Colours::text);
+    g.setFont (Theme::monoLight (11.5f, 0.02f));
+    g.drawFittedText (text, 12, 0, width - 24, height, juce::Justification::centredLeft, 1);
 }
 
-juce::Font KillaLookAndFeel::getPopupMenuFont()                  { return Theme::typewriter (15.0f); }
-juce::Font KillaLookAndFeel::getAlertWindowTitleFont()           { return Theme::marker (22.0f); }
-juce::Font KillaLookAndFeel::getAlertWindowMessageFont()         { return Theme::typewriter (15.0f); }
-juce::Font KillaLookAndFeel::getAlertWindowFont()                { return Theme::typewriter (14.0f); }
-juce::Font KillaLookAndFeel::getTextButtonFont (juce::TextButton&, int h) { return Theme::typewriter ((float) h * 0.55f); }
+juce::Font KillaLookAndFeel::getPopupMenuFont() { return Theme::mono (12.5f, 0.06f); }
 
 void KillaLookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int width, int height)
 {
-    g.fillAll (Colours::ink);
-    g.setColour (Colours::red.withAlpha (0.6f));
+    g.fillAll (Colours::card);
+    g.setColour (Colours::line2);
     g.drawRect (0, 0, width, height, 1);
+}
+
+void KillaLookAndFeel::drawPopupMenuItem (juce::Graphics& g, const juce::Rectangle<int>& area, bool isSeparator, bool isActive,
+                                          bool isHighlighted, bool isTicked, bool hasSubMenu, const juce::String& text,
+                                          const juce::String& shortcutKeyText, const juce::Drawable* icon, const juce::Colour* textColour)
+{
+    if (isSeparator)
+    {
+        g.setColour (Colours::line);
+        g.fillRect (area.reduced (8, 0).withHeight (1).withY (area.getCentreY()));
+        return;
+    }
+    auto r = area.reduced (4, 1);
+    if (isHighlighted && isActive)
+    {
+        g.setColour (Colours::accent.withAlpha (0.22f));
+        g.fillRoundedRectangle (r.toFloat(), 6.0f);
+    }
+    if (isTicked)
+    {
+        g.setColour (Colours::accentL);
+        g.fillEllipse (juce::Rectangle<float> (6.0f, 6.0f).withCentre ({ (float) r.getX() + 9.0f, (float) r.getCentreY() }));
+    }
+    g.setColour (! isActive ? Colours::muted : (textColour != nullptr ? *textColour : (isTicked ? Colours::accentL : Colours::text)));
+    g.setFont (getPopupMenuFont());
+    g.drawFittedText (text.toUpperCase(), r.withTrimmedLeft (20).withTrimmedRight (hasSubMenu ? 18 : 6), juce::Justification::centredLeft, 1);
+    if (hasSubMenu)
+    {
+        juce::Path arrow;
+        const float x = (float) r.getRight() - 10.0f, y = (float) r.getCentreY();
+        arrow.addTriangle (x - 3.0f, y - 4.0f, x - 3.0f, y + 4.0f, x + 2.0f, y);
+        g.setColour (Colours::text2);
+        g.fillPath (arrow);
+    }
+    juce::ignoreUnused (shortcutKeyText, icon);
+}
+
+juce::Font KillaLookAndFeel::getTextButtonFont (juce::TextButton&, int h) { return Theme::bold ((float) h * 0.48f); }
+
+void KillaLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool highlighted, bool down)
+{
+    auto r = b.getLocalBounds().toFloat().reduced (1.0f);
+    if (b.getToggleState() || b.getProperties()["chrome"])
+    {
+        Theme::drawChromePill (g, r, highlighted ? 0.55f : 0.35f);
+        b.setColour (juce::TextButton::textColourOffId, Colours::well);
+    }
+    else
+    {
+        g.setColour (down ? Colours::track : Colours::well);
+        g.fillRoundedRectangle (r, r.getHeight() * 0.5f);
+        g.setColour (highlighted ? Colours::accentL : Colours::line2);
+        g.drawRoundedRectangle (r, r.getHeight() * 0.5f, 1.0f);
+    }
+}
+
+void KillaLookAndFeel::fillTextEditorBackground (juce::Graphics& g, int width, int height, juce::TextEditor&)
+{
+    g.setColour (Colours::well);
+    g.fillRoundedRectangle (0.0f, 0.0f, (float) width, (float) height, (float) height * 0.5f);
+}
+
+void KillaLookAndFeel::drawTextEditorOutline (juce::Graphics& g, int width, int height, juce::TextEditor& ed)
+{
+    g.setColour (ed.hasKeyboardFocus (true) ? Colours::accentL : Colours::line2);
+    g.drawRoundedRectangle (0.5f, 0.5f, (float) width - 1.0f, (float) height - 1.0f, (float) height * 0.5f, 1.0f);
+}
+
+void KillaLookAndFeel::drawCallOutBoxBackground (juce::CallOutBox&, juce::Graphics& g, const juce::Path& path, juce::Image&)
+{
+    juce::DropShadow (Colours::glow.withAlpha (0.35f), 18, {}).drawForPath (g, path);
+    g.setColour (Colours::card);
+    g.fillPath (path);
+    g.setColour (Colours::line2);
+    g.strokePath (path, juce::PathStrokeType (1.0f));
 }
 } // namespace vk::ui

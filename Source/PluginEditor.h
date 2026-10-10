@@ -9,8 +9,9 @@
 #include "ui/KillPad.h"
 #include "ui/Waveform.h"
 #include "ui/TopBar.h"
+#include "ui/HalftimePanel.h"
 
-/** The whole 1000 x 625 interface; the editor scales it (100 / 125 / 150 %). */
+/** The whole 1000 x 625 interface; the editor scales it. */
 class MainView : public juce::Component
 {
 public:
@@ -37,11 +38,11 @@ private:
     vk::ui::Waveform waveform;
     vk::ui::PolaroidGrid grid;
     vk::ui::KillPad pad;
-    vk::ui::StepsBar steps;
-    vk::ui::TriggerBar triggerBar;
+    vk::ui::HalftimePanel halftime;
+    vk::ui::WhenSelector when;
     std::vector<std::unique_ptr<vk::ui::Knob>> knobs;
     vk::ui::MorphFader morphFader;
-    vk::ui::RockerSwitch duckSwitch;
+    vk::ui::ToggleSwitch duckSwitch;
     vk::ui::Thread thread;
 
     juce::Image staticCache;

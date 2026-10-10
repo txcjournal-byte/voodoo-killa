@@ -6,7 +6,7 @@ class VoodooKillaAudioProcessor;
 
 namespace vk::ui
 {
-/** One polaroid (preset card): photo, marker name, typewriter description, A/B pin, pulse while running. */
+/** One preset card: photo, name, short description, A/B chip, glow while running. */
 class PolaroidCard : public juce::Component, public juce::SettableTooltipClient
 {
 public:

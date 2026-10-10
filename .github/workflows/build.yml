@@ -24,11 +24,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item -Recurse "build/VoodooKilla_artefacts/Release/VST3/Voodoo Killa.vst3" dist/
-          Copy-Item "build/VoodooKilla_artefacts/Release/Standalone/Voodoo Killa.exe" dist/
+          Copy-Item -Recurse "build/VoodooKilla_artefacts/Release/VST3/TrapWin Timer.vst3" dist/
+          Copy-Item "build/VoodooKilla_artefacts/Release/Standalone/TrapWin Timer.exe" dist/
           Copy-Item README.md dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: VoodooKilla-Windows
+          name: TrapWinTimer-Windows
           path: dist

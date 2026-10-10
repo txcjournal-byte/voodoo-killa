@@ -4,27 +4,22 @@ using namespace vk::ui;
 
 namespace
 {
-// Layout on the 1000 x 625 base canvas (8 px grid, measured from Design/ui-reference.png)
-const juce::Rectangle<int> kLogo        { 36, 6, 462, 92 };
-const juce::Rectangle<int> kSubtitle    { 47, 99, 448, 20 };
-const juce::Rectangle<int> kTopBar      { 504, 36, 336, 48 };
-const juce::Rectangle<int> kKill        { 848, 36, 104, 52 };
-const juce::Rectangle<int> kLock        { 960, 50, 24, 26 };
-const juce::Rectangle<int> kGear        { 972, 10, 18, 18 };
-const juce::Rectangle<int> kCategories  { 16, 128, 128, 376 };
-const juce::Rectangle<int> kWaveform    { 160, 122, 536, 50 };
-const juce::Rectangle<int> kCardGrid        { 156, 178, 544, 312 };
-const juce::Rectangle<int> kPadTab      { 724, 118, 104, 24 };
-const juce::Rectangle<int> kPad         { 712, 140, 272, 240 };
-const juce::Rectangle<int> kStepsTab    { 712, 390, 64, 20 };
-const juce::Rectangle<int> kSteps       { 712, 414, 272, 42 };
-const juce::Rectangle<int> kTriggerTab  { 712, 460, 72, 20 };
-const juce::Rectangle<int> kTrigger     { 712, 484, 272, 28 };
-const juce::Rectangle<int> kKnobPanel   { 136, 512, 440, 100 };
-const juce::Rectangle<int> kMorphPanel  { 588, 528, 240, 72 };
-const juce::Rectangle<int> kMorphTab    { 660, 516, 96, 22 };
-const juce::Rectangle<int> kDuckTab     { 856, 522, 96, 22 };
-const juce::Rectangle<int> kDuck        { 864, 548, 84, 52 };
+// Layout on the 1000 x 625 base canvas (Design/trapwin-concept.png)
+const juce::Rectangle<int> kLogo        { 12, 17, 150, 50 };
+const juce::Rectangle<int> kTitle       { 186, 18, 200, 38 };
+const juce::Rectangle<int> kTagline     { 188, 56, 220, 12 };
+const juce::Rectangle<int> kTopBar      { 418, 21, 332, 44 };
+const juce::Rectangle<int> kKill        { 774, 16, 136, 54 };
+const juce::Rectangle<int> kLock        { 912, 26, 34, 34 };
+const juce::Rectangle<int> kGear        { 952, 26, 34, 34 };
+const juce::Rectangle<int> kCategories  { 16, 84, 138, 409 };
+const juce::Rectangle<int> kWaveform    { 166, 84, 524, 62 };
+const juce::Rectangle<int> kCardGrid    { 162, 151, 532, 346 };
+const juce::Rectangle<int> kPad         { 702, 84, 282, 206 };
+const juce::Rectangle<int> kHalftime    { 702, 300, 282, 193 };
+const juce::Rectangle<int> kMacros      { 16, 505, 508, 104 };
+const juce::Rectangle<int> kMorph       { 536, 505, 226, 104 };
+const juce::Rectangle<int> kSide        { 774, 505, 210, 104 };
 
 constexpr float kMinScale = 0.6f, kMaxScale = 1.5f;
 constexpr int kNumSizes = 6;
@@ -40,14 +35,6 @@ const char* const kKnobTips[]   = {
     "Mix: dry / wet balance.",
     "Out: output level."
 };
-
-void drawTabLabel (juce::Graphics& g, juce::Rectangle<int> r, const juce::String& text, uint32_t seed, float angle = -0.01f)
-{
-    Theme::drawTape (g, r.toFloat(), angle, seed);
-    g.setColour (Colours::ink);
-    g.setFont (Theme::typewriter (14.5f));
-    g.drawFittedText (text, r.reduced (4, 0), juce::Justification::centred, 1, 0.75f);
-}
 }
 
 // ===========================================================================
@@ -62,21 +49,21 @@ MainView::MainView (VoodooKillaAudioProcessor& p)
       waveform (p.getMeters()),
       grid (p),
       pad (p),
-      steps (p.apvts, [&p] { p.pushUndoSnapshot(); }),
-      triggerBar (*p.apvts.getParameter (ParamIDs::trigger), [&p] { p.pushUndoSnapshot(); }),
+      halftime (p),
+      when (*p.apvts.getParameter (ParamIDs::trigger), p.apvts, [&p] { p.pushUndoSnapshot(); }),
       morphFader (*p.apvts.getParameter (ParamIDs::morph), [&p] { p.pushUndoSnapshot(); }),
       duckSwitch (*p.apvts.getParameter (ParamIDs::duck), [&p] { p.pushUndoSnapshot(); })
 {
     lockButton.setTooltip ("Lock: KILL picks only from the current category.");
     gearButton.setTooltip ("Settings: interface size.");
-    duckSwitch.setTooltip ("808 Duck: ducks the melody on 808 hits (sidechain input or MIDI notes below C2).");
+    duckSwitch.setTooltip ("Duck for 808: ducks the melody on 808 hits (sidechain input or MIDI notes below C2).");
 
     auto formatter = [] (int i) -> std::function<juce::String (float)>
     {
         switch (i)
         {
             case 0: case 3: case 4: return [] (float v) { return juce::String (juce::roundToInt (v * 100.0f)) + "%"; };
-            case 1: return [] (float v) { return VoodooKillaAudioProcessor::speedChoices()[juce::roundToInt (v)]; };
+            case 1: return [] (float v) { return VoodooKillaAudioProcessor::speedChoices()[juce::roundToInt (v)] + juce::String (juce::CharPointer_UTF8 ("\xc3\x97")); };
             case 2: return [] (float v) { const int t = juce::roundToInt (v); return (t > 0 ? "+" : "") + juce::String (t); };
             default: return [] (float v) { return juce::String (v, 1) + " dB"; };
         }
@@ -85,13 +72,13 @@ MainView::MainView (VoodooKillaAudioProcessor& p)
     for (int i = 0; i < 6; ++i)
     {
         knobs.push_back (std::make_unique<Knob> (*p.apvts.getParameter (kKnobIds[i]), kKnobLabels[i],
-                                                 [&p] { p.pushUndoSnapshot(); }, formatter (i)));
+                                                 [&p] { p.pushUndoSnapshot(); }, formatter (i), i == 2 || i == 5));
         knobs.back()->setTooltip (kKnobTips[i]);
         addAndMakeVisible (*knobs.back());
     }
 
     for (auto* c : std::initializer_list<juce::Component*> { &topBar, &killButton, &lockButton, &gearButton, &categories,
-                                                             &waveform, &grid, &pad, &steps, &triggerBar, &morphFader, &duckSwitch })
+                                                             &waveform, &grid, &pad, &halftime, &when, &morphFader, &duckSwitch })
         addAndMakeVisible (c);
 
     addAndMakeVisible (thread);
@@ -115,16 +102,16 @@ void MainView::resized()
     waveform.setBounds (kWaveform);
     grid.setBounds (kCardGrid);
     pad.setBounds (kPad);
-    steps.setBounds (kSteps);
-    triggerBar.setBounds (kTrigger);
+    halftime.setBounds (kHalftime);
 
-    const auto knobArea = kKnobPanel.reduced (10, 6);
+    const auto knobArea = kMacros.reduced (14, 8);
     const int kw = knobArea.getWidth() / 6;
     for (int i = 0; i < (int) knobs.size(); ++i)
         knobs[(size_t) i]->setBounds (knobArea.getX() + i * kw, knobArea.getY(), kw, knobArea.getHeight());
 
-    morphFader.setBounds (kMorphPanel.reduced (4, 6).withTrimmedTop (8));
-    duckSwitch.setBounds (kDuck);
+    morphFader.setBounds (kMorph.getX() + 14, kMorph.getY() + 26, kMorph.getWidth() - 28, 66);
+    when.setBounds (kSide.getX() + 14, kSide.getY() + 20, kSide.getWidth() - 28, 34);
+    duckSwitch.setBounds (kSide.getRight() - 66, kSide.getY() + 58, 52, 34);
     thread.setBounds (getLocalBounds());
     staticScale = 0.0f;
     updateThread();
@@ -132,31 +119,24 @@ void MainView::resized()
 
 void MainView::renderStatic (juce::Graphics& g)
 {
-    Theme::fillBackground (g, getLocalBounds().toFloat());
+    Theme::drawBackground (g, getLocalBounds().toFloat());
+
+    for (auto r : { kCategories, kWaveform, kPad, kHalftime, kMacros, kMorph, kSide })
+        Theme::drawCard (g, r.toFloat(), 14.0f);
 
     Theme::drawLogo (g, kLogo.toFloat());
+    g.setColour (Colours::line2);
+    g.drawVerticalLine (174, 20.0f, 66.0f);
+    Theme::drawChromeText (g, "TIMER", kTitle.toFloat(), Theme::display (34.0f), juce::Justification::centredLeft);
+    g.setColour (Colours::text2);
+    g.setFont (Theme::monoLight (6.8f, 0.3f));
+    g.drawText (juce::String (juce::CharPointer_UTF8 ("HALFTIME \xc2\xb7 TAPE \xc2\xb7 STUTTER \xc2\xb7 REVERSE")),
+                kTagline.toFloat(), juce::Justification::centredLeft, false);
 
-    // subtitle strip
-    Theme::drawPaper (g, kSubtitle.toFloat(), 55u, true);
-    g.setColour (Colours::ink);
-    g.setFont (Theme::typewriter (12.5f));
-    g.drawFittedText (juce::CharPointer_UTF8 ("MELODY FX \xc2\xb7 HALFTIME \xc2\xb7 TAPE STOP \xc2\xb7 STUTTER \xc2\xb7 REVERSE \xc2\xb7 PITCH \xc2\xb7 LO-FI"),
-                kSubtitle.reduced (6, 0), juce::Justification::centred, 1, 0.7f);
-
-    // knob panel
-    Theme::drawPaper (g, kKnobPanel.toFloat(), 777u, true);
-
-    // morph tape + tab
-    Theme::drawTape (g, kMorphPanel.toFloat(), 0.004f, 3u);
-    drawTabLabel (g, kMorphTab, "MORPH", 11u);
-
-    // 808 duck tab
-    drawTabLabel (g, kDuckTab, "808 DUCK", 21u, 0.012f);
-
-    // right column tabs
-    drawTabLabel (g, kPadTab, "KILL PAD", 5u, -0.02f);
-    drawTabLabel (g, kStepsTab, "STEPS", 8u);
-    drawTabLabel (g, kTriggerTab, "TRIGGER", 9u);
+    g.setColour (Colours::text2);
+    g.setFont (Theme::mono (7.5f, 0.18f));
+    g.drawText ("DUCK FOR 808", juce::Rectangle<float> ((float) kSide.getX() + 14.0f, (float) kSide.getY() + 58.0f, 120.0f, 34.0f),
+                juce::Justification::centredLeft, false);
 }
 
 void MainView::paint (juce::Graphics& g)
@@ -179,7 +159,7 @@ void MainView::updateThread()
     const auto a = grid.getPin (1, *this);
     const auto b = grid.getPin (2, *this);
     const auto dot = getLocalPoint (&pad, pad.getDotPosition());
-    const float railY = (float) kCardGrid.getY() + 2.0f;
+    const float railY = (float) kWaveform.getCentreY() + 8.0f;
     thread.setPoints (a, b, dot, railY);
 }
 
@@ -194,6 +174,9 @@ void MainView::tick()
         topBar.refresh();
         pad.refresh();
         morphFader.setMorphEnabled (proc.getSlotB().valid);
+        morphFader.setNames (proc.getSlotA().valid ? proc.getSlotA().info.name : juce::String(),
+                             proc.getSlotB().valid ? proc.getSlotB().info.name : juce::String());
+        halftime.refresh();
         lockButton.repaint();
         updateThread();
     }
@@ -212,9 +195,7 @@ void MainView::tick()
     if (pulsePhase > juce::MathConstants<float>::twoPi) pulsePhase -= juce::MathConstants<float>::twoPi;
     grid.updatePulse (active, pulsePhase);
 
-    auto& m = proc.getMeters();
-    const bool stepsMode = (int) proc.apvts.getRawParameterValue (ParamIDs::trigger)->load() == (int) vk::TriggerMode::steps;
-    steps.setPlayingStep (m.currentStep.load (std::memory_order_relaxed), stepsMode);
+    waveform.setBpm (proc.getMeters().bpm.load (std::memory_order_relaxed));
 }
 
 void MainView::showSettings (juce::Component& target)
@@ -227,7 +208,7 @@ void MainView::showSettings (juce::Component& target)
     menu.addItem (9, "Drag the bottom-right corner for any size", false, false);
     menu.addSeparator();
     menu.addItem (10, "Open user preset folder");
-    menu.addSectionHeader (juce::String ("Voodoo Killa ") + JucePlugin_VersionString);
+    menu.addSectionHeader (juce::String ("TrapWin Timer ") + JucePlugin_VersionString);
 
     juce::Component::SafePointer<MainView> safe (this);
     menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&target), [safe] (int r)

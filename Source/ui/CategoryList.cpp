@@ -20,8 +20,9 @@ void CategoryList::refresh()
 
 juce::Rectangle<float> CategoryList::itemBounds (int i) const
 {
-    const float h = (float) getHeight() / (float) vk::kNumCategories;
-    return { 0.0f, h * (float) i + 2.0f, (float) getWidth(), h - 6.0f };
+    const float top = 26.0f;
+    const float h = ((float) getHeight() - top - 8.0f) / (float) vk::kNumCategories;
+    return { 8.0f, top + h * (float) i, (float) getWidth() - 16.0f, h - 2.0f };
 }
 
 int CategoryList::itemAt (juce::Point<float> p) const
@@ -34,23 +35,40 @@ int CategoryList::itemAt (juce::Point<float> p) const
 
 void CategoryList::paint (juce::Graphics& g)
 {
+    g.setColour (Colours::accent);
+    g.setFont (Theme::mono (8.0f, 0.2f));
+    g.drawText ("CATEGORIES", juce::Rectangle<float> (14.0f, 8.0f, (float) getWidth() - 20.0f, 14.0f), juce::Justification::centredLeft, false);
+
     const auto& cats = proc.library.getCategories();
     for (int i = 0; i < (int) cats.size() && i < vk::kNumCategories; ++i)
     {
-        auto r = itemBounds (i).withTrimmedLeft (14.0f);
+        const auto r = itemBounds (i);
         const bool on = i == active;
-        const float angle = ((float) ((i * 7919) % 5) - 2.0f) * 0.0035f;
-        Theme::drawTape (g, r.withTrimmedRight (on ? 0.0f : 4.0f), angle, (uint32_t) (i * 131 + 7),
-                         on ? Colours::red : (i == hover ? Colours::tape.brighter (0.15f) : Colours::tape));
+        if (on)
+        {
+            juce::Path p;
+            p.addRoundedRectangle (r, 8.0f);
+            juce::DropShadow (Colours::glow.withAlpha (0.25f), 12, {}).drawForPath (g, p);
+            g.setGradientFill (juce::ColourGradient (Colours::accent.withAlpha (0.30f), r.getX(), 0.0f,
+                                                     Colours::accent.withAlpha (0.05f), r.getRight(), 0.0f, false));
+            g.fillPath (p);
+            g.setColour (Colours::accentL);
+            g.fillRoundedRectangle (r.withWidth (2.0f).reduced (0.0f, 4.0f), 1.0f);
+        }
+        else if (i == hover)
+        {
+            g.setColour (Colours::accent.withAlpha (0.08f));
+            g.fillRoundedRectangle (r, 8.0f);
+        }
 
-        // index (MIDI C2 + i)
-        g.setColour (on ? Colours::red : Colours::grey);
-        g.setFont (Theme::typewriter (11.0f));
-        g.drawText (juce::String (i + 1), juce::Rectangle<float> (0.0f, r.getY(), 14.0f, r.getHeight()), juce::Justification::centredLeft, false);
+        g.setColour (on ? Colours::accentL : Colours::muted);
+        g.setFont (Theme::monoLight (7.5f, 0.1f));
+        g.drawText (juce::String (i + 1).paddedLeft ('0', 2), r.withTrimmedLeft (8.0f).withWidth (18.0f), juce::Justification::centredLeft, false);
 
-        g.setColour (on ? Colours::ink : Colours::ink.withAlpha (0.9f));
-        g.setFont (Theme::typewriter (15.5f));
-        g.drawFittedText (cats[(size_t) i].name, r.reduced (9.0f, 0.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.72f);
+        g.setColour (on ? Colours::text : Colours::text2);
+        g.setFont (Theme::mono (9.5f, 0.12f));
+        g.drawFittedText (cats[(size_t) i].name.toUpperCase(), r.withTrimmedLeft (28.0f).reduced (0.0f, 1.0f).toNearestInt(),
+                          juce::Justification::centredLeft, 1, 0.75f);
     }
 }
 
@@ -67,11 +85,7 @@ void CategoryList::mouseUp (const juce::MouseEvent& e)
 void CategoryList::mouseMove (const juce::MouseEvent& e)
 {
     const int i = itemAt (e.position);
-    if (i != hover)
-    {
-        hover = i;
-        repaint();
-    }
+    if (i != hover) { hover = i; repaint(); }
 }
 
 void CategoryList::mouseExit (const juce::MouseEvent&)

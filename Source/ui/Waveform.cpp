@@ -4,7 +4,7 @@ namespace vk::ui
 {
 Waveform::Waveform (vk::EngineMeters& m) : meters (m)
 {
-    setTooltip ("One bar of audio: grey = dry, red = effect. The red line is the playhead.");
+    setTooltip ("One bar of audio: dim = dry, blue = effect. The bright line is the playhead.");
     setOpaque (false);
 }
 
@@ -26,25 +26,39 @@ void Waveform::update()
         repaint();
 }
 
+void Waveform::setBpm (double newBpm)
+{
+    const int b = juce::roundToInt (newBpm);
+    if (b != bpm) { bpm = b; repaint(); }
+}
+
 void Waveform::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat();
-    const auto a = b.reduced (14.0f, 8.0f);
+    const auto a = b.reduced (12.0f, 0.0f).withTrimmedTop (24.0f).withTrimmedBottom (8.0f);
     const float mid = a.getCentreY();
 
-    // paper strip + beat grid rendered once per size / scale (the waveform itself redraws at 30 fps)
+    // header + beat grid rendered once per size / scale (the waveform itself redraws at 30 fps)
     const float scale = g.getInternalContext().getPhysicalPixelScaleFactor();
     const int iw = juce::roundToInt (b.getWidth() * scale), ih = juce::roundToInt (b.getHeight() * scale);
-    if (background.getWidth() != iw || background.getHeight() != ih)
+    if (background.getWidth() != iw || background.getHeight() != ih || cachedBpm != bpm)
     {
+        cachedBpm = bpm;
         background = juce::Image (juce::Image::ARGB, juce::jmax (1, iw), juce::jmax (1, ih), true);
         juce::Graphics bg (background);
         bg.addTransform (juce::AffineTransform::scale (scale));
-        Theme::drawPaper (bg, b, 9001u, true);
-        for (int i = 1; i < 16; ++i)
+        bg.setColour (Colours::accent);
+        bg.setFont (Theme::mono (8.0f, 0.2f));
+        bg.drawText ("SIGNAL", juce::Rectangle<float> (12.0f, 6.0f, 100.0f, 16.0f), juce::Justification::centredLeft, false);
+        bg.setColour (Colours::muted);
+        bg.setFont (Theme::monoLight (7.0f, 0.2f));
+        const juce::String info = juce::String (juce::CharPointer_UTF8 ("1 \xc2\xb7 2 \xc2\xb7 3 \xc2\xb7 4   |   "))
+                                + (bpm > 0 ? juce::String (bpm) + " BPM" : juce::String ("-- BPM"));
+        bg.drawText (info, juce::Rectangle<float> (b.getWidth() - 232.0f, 6.0f, 220.0f, 16.0f), juce::Justification::centredRight, false);
+        for (int i = 1; i < 4; ++i)
         {
-            const float x = a.getX() + a.getWidth() * (float) i / 16.0f;
-            bg.setColour (Colours::ink.withAlpha (i % 4 == 0 ? 0.18f : 0.07f));
+            const float x = a.getX() + a.getWidth() * (float) i / 4.0f;
+            bg.setColour (Colours::accent.withAlpha (0.10f));
             bg.drawVerticalLine ((int) x, a.getY(), a.getBottom());
         }
     }
@@ -52,27 +66,34 @@ void Waveform::paint (juce::Graphics& g)
 
     const int n = vk::EngineMeters::kColumns;
     const float colW = a.getWidth() / (float) n;
-    auto shape = [&] (const std::array<float, vk::EngineMeters::kColumns>& v)
+    auto shape = [&] (const std::array<float, vk::EngineMeters::kColumns>& v, int from, int to)
     {
         juce::Path p;
-        for (int i = 0; i < n; ++i)
+        for (int i = from; i < to; ++i)
         {
             const float h = juce::jmin (1.0f, std::sqrt (v[(size_t) i])) * a.getHeight() * 0.5f;
             const float x = a.getX() + colW * (float) i;
-            p.addRectangle (x, mid - h, juce::jmax (1.0f, colW * 0.85f), h * 2.0f + 0.5f);
+            p.addRectangle (x, mid - h, juce::jmax (1.0f, colW * 0.6f), h * 2.0f + 0.5f);
         }
         return p;
     };
 
-    g.setColour (Colours::ink.withAlpha (0.75f));
-    g.fillPath (shape (dry));
-    g.setColour (Colours::red.withAlpha (0.85f));
-    g.fillPath (shape (wet));
+    // played part bright, the rest of the bar dimmed
+    const int split = juce::jlimit (0, n, (int) std::ceil (playhead * (float) n));
+    g.setColour (Colours::muted.withAlpha (0.45f));
+    g.fillPath (shape (dry, 0, n));
+    g.setColour (Colours::accent.withAlpha (0.35f));
+    g.fillPath (shape (wet, split, n));
+    g.setColour (Colours::accentL);
+    g.fillPath (shape (wet, 0, split));
 
     // playhead
     const float x = a.getX() + a.getWidth() * playhead;
-    g.setColour (Colours::red);
-    g.fillRect (juce::Rectangle<float> (3.0f, b.getHeight() - 4.0f).withCentre ({ x, b.getCentreY() }));
+    const auto ph = juce::Rectangle<float> (2.0f, a.getHeight() + 6.0f).withCentre ({ x, mid });
+    g.setColour (Colours::accent.withAlpha (0.35f));
+    g.fillRect (ph.expanded (2.0f, 0.0f));
+    g.setColour (Colours::text);
+    g.fillRect (ph);
 }
 
 // ===========================================================================
@@ -130,12 +151,10 @@ void Thread::paint (juce::Graphics& g)
     const auto p = buildPath();
     if (p.isEmpty())
         return;
-    g.setColour (juce::Colours::black.withAlpha (0.45f));
-    g.strokePath (p, juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded),
-                  juce::AffineTransform::translation (1.2f, 2.0f));
-    g.setColour (Colours::red.darker (0.1f));
-    g.strokePath (p, juce::PathStrokeType (1.7f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-    g.setColour (Colours::red.brighter (0.4f).withAlpha (0.5f));
-    g.strokePath (p, juce::PathStrokeType (0.6f), juce::AffineTransform::translation (-0.3f, -0.4f));
+    const juce::PathStrokeType wide (5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded);
+    g.setColour (Colours::glow.withAlpha (0.22f));
+    g.strokePath (p, wide);
+    g.setColour (Colours::accentL.withAlpha (0.9f));
+    g.strokePath (p, juce::PathStrokeType (1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 } // namespace vk::ui

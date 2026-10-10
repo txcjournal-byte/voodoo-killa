@@ -7,7 +7,7 @@ namespace vk
 {
 /**
     Factory presets (read-only, loaded once from BinaryData) + user presets (JSON files in
-    Documents/Killa/Voodoo Killa/Presets).
+    Documents/TrapWin/TrapWin Timer/Presets).
 
     The factory vector never changes after construction, so the audio thread may read
     getFactory()[i].data directly (used for MIDI card selection).

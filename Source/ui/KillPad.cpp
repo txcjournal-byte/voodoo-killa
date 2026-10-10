@@ -36,7 +36,7 @@ juce::RangedAudioParameter& KillPad::xParam() const { return morphMode ? morph :
 
 juce::Rectangle<float> KillPad::padArea() const
 {
-    return getLocalBounds().toFloat().reduced (26.0f, 20.0f).withTrimmedBottom (8.0f);
+    return getLocalBounds().toFloat().withTrimmedTop (30.0f).reduced (12.0f).withTrimmedBottom (0.0f);
 }
 
 juce::Point<float> KillPad::getDotPosition() const
@@ -54,59 +54,67 @@ void KillPad::paramChanged()
 void KillPad::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat();
-    Theme::drawPaper (g, b, 4242u, true);
+    g.setColour (Colours::accent);
+    g.setFont (Theme::mono (8.0f, 0.2f));
+    g.drawText ("KILL PAD", juce::Rectangle<float> (12.0f, 8.0f, 120.0f, 16.0f), juce::Justification::centredLeft, false);
+    g.setColour (Colours::muted);
+    g.setFont (Theme::monoLight (7.0f, 0.16f));
+    g.drawText (morphMode ? juce::String (juce::CharPointer_UTF8 ("X MORPH \xc2\xb7 Y TONE"))
+                          : juce::String (juce::CharPointer_UTF8 ("X AMOUNT \xc2\xb7 Y TONE")),
+                juce::Rectangle<float> (b.getWidth() - 172.0f, 8.0f, 160.0f, 16.0f), juce::Justification::centredRight, false);
 
     const auto a = padArea();
 
-    // millimetre paper grid (cached)
+    // dark grid well (cached)
     const float scale = g.getInternalContext().getPhysicalPixelScaleFactor();
     const int iw = juce::roundToInt (a.getWidth() * scale), ih = juce::roundToInt (a.getHeight() * scale);
-    if (gridCache.getWidth() != iw || gridCache.getHeight() != ih)
+    if (gridCache.getWidth() != iw || gridCache.getHeight() != ih || cachedMorphMode != morphMode)
     {
+        cachedMorphMode = morphMode;
         gridCache = juce::Image (juce::Image::ARGB, juce::jmax (1, iw), juce::jmax (1, ih), true);
         juce::Graphics gg (gridCache);
         gg.addTransform (juce::AffineTransform::scale (scale));
-        const float w = a.getWidth(), h = a.getHeight();
-        for (int i = 0; i <= 50; ++i)
+        const auto r = juce::Rectangle<float> (0.0f, 0.0f, a.getWidth(), a.getHeight());
+        Theme::drawWell (gg, r, 10.0f);
+        juce::Graphics::ScopedSaveState ss (gg);
+        juce::Path clip;
+        clip.addRoundedRectangle (r, 10.0f);
+        gg.reduceClipRegion (clip);
+        for (int i = 1; i < 10; ++i)
         {
-            const bool major = i % 5 == 0;
-            gg.setColour (Colours::ink.withAlpha (major ? 0.22f : 0.08f));
-            const float x = w * (float) i / 50.0f, y = h * (float) i / 50.0f;
-            gg.drawLine (x, 0.0f, x, h, major ? 1.0f : 0.6f);
-            gg.drawLine (0.0f, y, w, y, major ? 1.0f : 0.6f);
+            const float x = r.getWidth() * (float) i / 10.0f, y = r.getHeight() * (float) i / 10.0f;
+            gg.setColour (Colours::accent.withAlpha (i == 5 ? 0.22f : 0.08f));
+            gg.drawLine (x, 0.0f, x, r.getHeight(), 1.0f);
+            gg.drawLine (0.0f, y, r.getWidth(), y, 1.0f);
         }
-        gg.setColour (Colours::ink.withAlpha (0.75f));
-        gg.drawRect (juce::Rectangle<float> (0.0f, 0.0f, w, h), 1.5f);
+        gg.setColour (Colours::muted);
+        gg.setFont (Theme::monoLight (7.0f, 0.2f));
+        gg.drawText ("BRIGHT", r.withHeight (22.0f), juce::Justification::centred, false);
+        gg.drawText ("DARK", r.withTrimmedTop (r.getHeight() - 22.0f), juce::Justification::centred, false);
+        if (morphMode)
+        {
+            gg.drawText ("A", juce::Rectangle<float> (6.0f, r.getCentreY() + 2.0f, 14.0f, 14.0f), juce::Justification::centred, false);
+            gg.drawText ("B", juce::Rectangle<float> (r.getRight() - 20.0f, r.getCentreY() + 2.0f, 14.0f, 14.0f), juce::Justification::centred, false);
+        }
+        else
+        {
+            gg.drawText ("AMOUNT", juce::Rectangle<float> (r.getRight() - 64.0f, r.getCentreY() + 2.0f, 58.0f, 14.0f), juce::Justification::centredRight, false);
+        }
     }
     g.drawImage (gridCache, a);
 
-    // axis labels
-    g.setColour (Colours::ink);
-    g.setFont (Theme::typewriter (15.0f));
-    if (morphMode)
-    {
-        g.drawText ("A", juce::Rectangle<float> (a.getX() + 4.0f, a.getCentreY() - 10.0f, 20.0f, 20.0f), juce::Justification::centred);
-        g.drawText ("B", juce::Rectangle<float> (a.getRight() - 24.0f, a.getCentreY() - 10.0f, 20.0f, 20.0f), juce::Justification::centred);
-        g.drawText ("MORPH", juce::Rectangle<float> (a.getX(), a.getBottom() + 2.0f, a.getWidth(), 18.0f), juce::Justification::centred);
-    }
-    else
-    {
-        g.drawText ("AMOUNT", juce::Rectangle<float> (a.getX(), a.getBottom() + 2.0f, a.getWidth(), 18.0f), juce::Justification::centred);
-    }
+    // crosshair through the dot
+    const auto d = getDotPosition();
     {
         juce::Graphics::ScopedSaveState ss (g);
-        const auto c = juce::Point<float> (a.getX() - 13.0f, a.getCentreY());
-        g.addTransform (juce::AffineTransform::rotation (-juce::MathConstants<float>::halfPi, c.x, c.y));
-        g.drawText ("TONE", juce::Rectangle<float> (80.0f, 18.0f).withCentre (c), juce::Justification::centred);
+        g.reduceClipRegion (a.reduced (1.0f).toNearestInt());
+        g.setColour (Colours::accentL.withAlpha (0.28f));
+        const float dash[] = { 3.0f, 4.0f };
+        g.drawDashedLine ({ a.getX(), d.y, a.getRight(), d.y }, dash, 2, 1.0f);
+        g.drawDashedLine ({ d.x, a.getY(), d.x, a.getBottom() }, dash, 2, 1.0f);
     }
 
-    // dot + glow
-    const auto d = getDotPosition();
-    juce::ColourGradient glow (Colours::red.withAlpha (dragging ? 0.55f : 0.4f), d.x, d.y,
-                               Colours::red.withAlpha (0.0f), d.x + 30.0f, d.y, true);
-    g.setGradientFill (glow);
-    g.fillEllipse (juce::Rectangle<float> (60.0f, 60.0f).withCentre (d));
-    Theme::drawPin (g, d, 8.0f);
+    Theme::drawGlowDot (g, d, dragging ? 7.0f : 6.0f, dragging ? 40.0f : 32.0f);
 }
 
 void KillPad::setFromPosition (juce::Point<float> p)

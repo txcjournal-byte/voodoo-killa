@@ -393,6 +393,27 @@ void VoodooKillaAudioProcessor::kill (bool mutate, uint32_t seed)
         loadPreset (idx, Slot::A);
 }
 
+void VoodooKillaAudioProcessor::editHalftime (const std::function<void (vk::TimeParams&, float&)>& edit, bool finished)
+{
+    if (! slotA.valid)
+        return;
+    auto& d = slotA.info.data;
+    if (! vk::isHalftimeMode (d.time.mode))
+    {
+        d.time = vk::TimeParams {};
+        d.time.mode = vk::TimeMode::half;
+        d.time.htMode = vk::htTape;
+        d.length = 4.0f;
+    }
+    edit (d.time, d.length);
+    if (! slotA.info.name.endsWithChar ('*'))
+        slotA.info.name << "*";
+    sendSlotsToAudio();
+    ++selectionVersion;
+    if (finished)
+        pushUndoSnapshot();
+}
+
 void VoodooKillaAudioProcessor::setCurrentCategory (int category)
 {
     category = juce::jlimit (0, vk::kNumCategories - 1, category);

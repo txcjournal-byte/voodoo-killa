@@ -41,5 +41,6 @@ private:
     bool morphMode = false;
     bool dragging = false;
     juce::Image gridCache;
+    bool cachedMorphMode = false;
 };
 } // namespace vk::ui

@@ -6,7 +6,7 @@ class VoodooKillaAudioProcessor;
 
 namespace vk::ui
 {
-/** [◀ NAME ▶ | ★ | A|B | ↶ ↷ | 💾 | 🎲] on a strip of paper. */
+/** Preset pill: [◀ NAME / CATEGORY · NN ▶ | ★ A|B | ↶ ↷ 💾]. */
 class TopBar : public juce::Component, public juce::TooltipClient
 {
 public:
@@ -20,7 +20,8 @@ public:
     juce::String getTooltip() override;
 
 private:
-    enum Region { prev, name, next, star, ab, undo, redo, save, dice, numRegions };
+    enum Region { prev, name, next, star, ab, undo, redo, save, numRegions };
+    static constexpr float kSepWidth = 14.0f;
     juce::Rectangle<float> regionBounds (Region) const;
     int regionAt (juce::Point<float>) const;
     void showPresetMenu();

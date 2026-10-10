@@ -102,7 +102,7 @@ int PresetLibrary::randomIndex (uint32_t seed, int category, int exclude) const 
 juce::File PresetLibrary::getUserPresetFolder()
 {
     return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
-               .getChildFile ("Killa").getChildFile ("Voodoo Killa").getChildFile ("Presets");
+               .getChildFile ("TrapWin").getChildFile ("TrapWin Timer").getChildFile ("Presets");
 }
 
 void PresetLibrary::scanUserPresets()
@@ -153,7 +153,7 @@ int PresetLibrary::saveUserPreset (const juce::String& name, const PresetInfo& a
     auto file = folder.getChildFile (safe + ".json");
 
     auto root = new juce::DynamicObject();
-    root->setProperty ("product", "Voodoo Killa");
+    root->setProperty ("product", "TrapWin Timer");
     root->setProperty ("version", 1);
     root->setProperty ("name", name.trim());
     root->setProperty ("a", presetInfoToVar (a));

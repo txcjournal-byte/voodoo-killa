@@ -5,21 +5,25 @@
 
 namespace vk::ui
 {
+/** TrapWin "Chrome" identity (same tokens as the trapwin.com theme). */
 namespace Colours
 {
-    inline const juce::Colour background { 0xff0c0c0c };
-    inline const juce::Colour ink        { 0xff121212 };
-    inline const juce::Colour paper      { 0xffd3ccc2 };
-    inline const juce::Colour paperDark  { 0xffbdb5aa };
-    inline const juce::Colour tape       { 0xffc6beb3 };
-    inline const juce::Colour grey       { 0xff8c8c8c };
-    inline const juce::Colour greyDark   { 0xff4a4a4a };
-    inline const juce::Colour red        { 0xffff2e3e };
-    inline const juce::Colour redDark    { 0xffb3202c };
+    inline const juce::Colour bg       { 0xff04060a };
+    inline const juce::Colour card     { 0xff0a0f18 };
+    inline const juce::Colour card2    { 0xff0b111c };
+    inline const juce::Colour well     { 0xff05070b };
+    inline const juce::Colour track    { 0xff121a28 };
+    inline const juce::Colour text     { 0xffe6ecf7 };
+    inline const juce::Colour text2    { 0xffa9b6cc };
+    inline const juce::Colour muted    { 0xff6f7c93 };
+    inline const juce::Colour accent   { 0xff7fa6e8 };
+    inline const juce::Colour accentL  { 0xff9fc3ff };
+    inline const juce::Colour accentD  { 0xff4f78c4 };
+    inline const juce::Colour glow     { 0xff4676c4 };
+    inline const juce::Colour line     { 0x299fc3ff };   // ~16 %
+    inline const juce::Colour line2    { 0x4d9fc3ff };   // ~30 %
 }
 
-/** Grid unit (the layout is built on an 8 px grid at 100 %). */
-constexpr int kGrid = 8;
 constexpr int kBaseWidth = 1000;
 constexpr int kBaseHeight = 625;
 
@@ -32,41 +36,38 @@ struct ThemeResources
     ThemeResources();
     ~ThemeResources();
 
-    juce::Typeface::Ptr typewriterFace, markerFace;
+    juce::Typeface::Ptr displayFace, boldFace, monoFace, monoLightFace;
     std::map<juce::String, juce::Image> images;
-    juce::Image backgroundTile, paperTile;
+    std::map<juce::String, juce::Image> photos;
 
     JUCE_DECLARE_NON_COPYABLE (ThemeResources)
 };
 
-/**
-    Fonts, textures and small drawing helpers.
-    Every bitmap is looked up by its fixed file name in BinaryData (Resources/...). When an asset is
-    missing a procedural placeholder is generated, so artwork can be dropped in without code changes.
-*/
 struct Theme
 {
-    static juce::Font typewriter (float height);   // Special Elite
-    static juce::Font marker (float height);       // Permanent Marker
+    // ---- fonts
+    static juce::Font display (float height);     // Archivo Black Italic, expanded (headlines)
+    static juce::Font bold (float height);        // Archivo ExtraBold Italic (names, values)
+    static juce::Font mono (float height, float tracking = 0.16f);       // IBM Plex Mono Medium, upper-case labels
+    static juce::Font monoLight (float height, float tracking = 0.16f);  // IBM Plex Mono Regular
 
-    /** BinaryData lookup by original file name (e.g. "halfcut_2.jpg"). Cached. Invalid image if missing. */
+    // ---- assets (BinaryData by original file name, cached)
     static juce::Image getAsset (const juce::String& fileName);
-
-    static const juce::Image& backgroundTile();
-    static const juce::Image& paperTile();
-
-    static void fillBackground (juce::Graphics&, juce::Rectangle<float> area);
-    static void drawPaper (juce::Graphics&, juce::Rectangle<float> area, uint32_t seed, bool tornEdges = false,
-                           juce::Colour tint = Colours::paper);
-    static void drawTape (juce::Graphics&, juce::Rectangle<float> area, float angleRadians, uint32_t seed,
-                          juce::Colour tint = Colours::tape);
-    static void drawPin (juce::Graphics&, juce::Point<float> centre, float radius);
-    static void drawLogo (juce::Graphics&, juce::Rectangle<float> area);
-
-    /** Photo for a preset (Resources/Photos/<photo>) or the placeholder. `isPlaceholder` tells the caller to label it. */
+    /** Card photo: grayscale, slightly blue-tinted. `isPlaceholder` = the preset has no own photo yet. */
     static juce::Image photo (const juce::String& fileName, bool& isPlaceholder);
 
-    // simple vector icons for the top bar
+    // ---- surfaces
+    static void drawBackground (juce::Graphics&, juce::Rectangle<float> area);
+    static void drawCard (juce::Graphics&, juce::Rectangle<float> area, float radius = 14.0f, float glow = 0.10f);
+    static void drawWell (juce::Graphics&, juce::Rectangle<float> area, float radius);
+    static void drawChromePill (juce::Graphics&, juce::Rectangle<float> area, float glow = 0.45f);
+    static juce::ColourGradient chromeGradient (juce::Rectangle<float> area);
+    static void drawChromeText (juce::Graphics&, const juce::String& text, juce::Rectangle<float> area,
+                                const juce::Font& font, juce::Justification just, bool glow = true);
+    static void drawGlowDot (juce::Graphics&, juce::Point<float> centre, float radius, float glowRadius);
+    static void drawLogo (juce::Graphics&, juce::Rectangle<float> area);
+
+    // ---- icons
     static juce::Path starIcon (juce::Rectangle<float>);
     static juce::Path undoIcon (juce::Rectangle<float>, bool redo);
     static juce::Path saveIcon (juce::Rectangle<float>);
@@ -84,9 +85,13 @@ public:
     void drawTooltip (juce::Graphics&, const juce::String& text, int width, int height) override;
     juce::Font getPopupMenuFont() override;
     void drawPopupMenuBackground (juce::Graphics&, int width, int height) override;
-    juce::Font getAlertWindowTitleFont() override;
-    juce::Font getAlertWindowMessageFont() override;
-    juce::Font getAlertWindowFont() override;
+    void drawPopupMenuItem (juce::Graphics&, const juce::Rectangle<int>& area, bool isSeparator, bool isActive, bool isHighlighted,
+                            bool isTicked, bool hasSubMenu, const juce::String& text, const juce::String& shortcutKeyText,
+                            const juce::Drawable* icon, const juce::Colour* textColour) override;
     juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override;
+    void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour&, bool highlighted, bool down) override;
+    void fillTextEditorBackground (juce::Graphics&, int width, int height, juce::TextEditor&) override;
+    void drawTextEditorOutline (juce::Graphics&, int width, int height, juce::TextEditor&) override;
+    void drawCallOutBoxBackground (juce::CallOutBox&, juce::Graphics&, const juce::Path&, juce::Image&) override;
 };
 } // namespace vk::ui

@@ -31,12 +31,15 @@ private:
     bool inGesture = false;
 };
 
-/** Black bakelite knob with a red line. Drag up/down, Ctrl/Cmd+drag = fine, double click = default. */
+/** Chrome knob with an ice-blue value ring. bipolar = ring grows from 12 o'clock. */
+void drawChromeKnob (juce::Graphics&, juce::Rectangle<float> area, float normalised, bool bipolar);
+
+/** Macro knob: drag up/down, Ctrl/Cmd+drag = fine, double click = default, wheel. Value above the label. */
 class Knob : public ParamControl
 {
 public:
     Knob (juce::RangedAudioParameter& p, juce::String label, std::function<void()> gestureEnded,
-          std::function<juce::String (float plain)> formatter);
+          std::function<juce::String (float plain)> formatter, bool bipolar = false);
 
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
@@ -45,21 +48,47 @@ public:
     void mouseDoubleClick (const juce::MouseEvent&) override;
     void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
 
-    static void drawKnobBody (juce::Graphics&, juce::Rectangle<float> area, float normalised);
-
 private:
     juce::String label;
     std::function<juce::String (float)> format;
-    float dragStartValue = 0.0f;
-    float lastDragY = 0.0f;
-    float accum = 0.0f;
+    bool bipolar = false;
+    float lastDragY = 0.0f, accum = 0.0f;
 };
 
-/** Red rocker switch (808 DUCK). */
-class RockerSwitch : public ParamControl
+/**
+    Small knob not bound to a host parameter (Halftime Engine settings that live in the preset).
+    Works on a list of discrete steps or continuously (0..1).
+*/
+class MiniKnob : public juce::Component, public juce::SettableTooltipClient
 {
 public:
-    RockerSwitch (juce::RangedAudioParameter& p, std::function<void()> gestureEnded);
+    MiniKnob (juce::String label, int numSteps);   // numSteps <= 1 -> continuous
+
+    std::function<float()> getValue;                     // 0..1
+    std::function<void (float, bool finished)> setValue; // 0..1
+    std::function<juce::String()> getText;
+    float defaultValue = 0.0f;
+
+    void setEnabledLook (bool e) { if (e != enabledLook) { enabledLook = e; repaint(); } }
+    void paint (juce::Graphics&) override;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp (const juce::MouseEvent&) override;
+    void mouseDoubleClick (const juce::MouseEvent&) override;
+
+private:
+    float quantise (float v) const;
+    juce::String label;
+    int steps = 0;
+    float accum = 0.0f, lastY = 0.0f;
+    bool enabledLook = true;
+};
+
+/** Pill toggle switch (DUCK FOR 808). */
+class ToggleSwitch : public ParamControl
+{
+public:
+    ToggleSwitch (juce::RangedAudioParameter& p, std::function<void()> gestureEnded);
     void paint (juce::Graphics&) override;
     void mouseUp (const juce::MouseEvent&) override;
 };

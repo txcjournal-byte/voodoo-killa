@@ -44,79 +44,77 @@ juce::Rectangle<float> PolaroidCard::getFrameInParent() const
 
 juce::Rectangle<float> PolaroidCard::frameBounds() const
 {
-    return getLocalBounds().toFloat().reduced (4.0f, 3.0f);
+    return getLocalBounds().toFloat().reduced (5.0f, 9.0f).withTrimmedTop (1.0f);
 }
 
 juce::Rectangle<float> PolaroidCard::photoBounds() const
 {
-    const auto f = frameBounds();
-    const float m = 7.0f;
-    return { f.getX() + m, f.getY() + m, f.getWidth() - 2.0f * m, f.getHeight() * 0.685f };
+    const auto f = frameBounds().reduced (7.0f);
+    return f.withHeight (f.getHeight() - 30.0f);
 }
 
 juce::Point<float> PolaroidCard::getPinPosition() const
 {
     const auto f = frameBounds();
-    return { f.getCentreX(), f.getY() + 2.0f };
+    return { f.getRight() - 20.0f, f.getY() };
 }
 
 void PolaroidCard::paint (juce::Graphics& g)
 {
     const auto f = frameBounds();
-    Theme::drawPaper (g, f, (uint32_t) (card * 977 + 13), false, Colours::paper.brighter (0.12f));
+    Theme::drawCard (g, f, 14.0f, slot == 1 ? 0.0f : 0.08f);
 
-    // photo
+    if (slot > 0)
+    {
+        juce::Path outline;
+        outline.addRoundedRectangle (f, 14.0f);
+        juce::DropShadow ((slot == 1 ? Colours::accentL : Colours::accent).withAlpha (slot == 1 ? 0.55f : 0.35f), 22, {}).drawForPath (g, outline);
+        g.setColour (slot == 1 ? Colours::accentL : Colours::accent);
+        g.strokePath (outline, juce::PathStrokeType (1.6f));
+    }
+
+    // photo: rounded, grayscale, cool fade to the card
     const auto ph = photoBounds();
-    g.setColour (juce::Colour (0xff1a1a1a));
-    g.fillRect (ph);
-    if (photo.isValid())
     {
         juce::Graphics::ScopedSaveState ss (g);
-        g.reduceClipRegion (ph.toNearestInt());
-        g.drawImage (photo, ph, juce::RectanglePlacement::centred | juce::RectanglePlacement::fillDestination);
+        juce::Path clip;
+        clip.addRoundedRectangle (ph, 9.0f);
+        g.reduceClipRegion (clip);
+        g.setColour (Colours::well);
+        g.fillRect (ph);
+        if (photo.isValid())
+            g.drawImage (photo, ph, juce::RectanglePlacement::centred | juce::RectanglePlacement::fillDestination);
+        g.setGradientFill (juce::ColourGradient (Colours::glow.withAlpha (0.10f), 0.0f, ph.getY(),
+                                                 Colours::bg.withAlpha (0.55f), 0.0f, ph.getBottom(), false));
+        g.fillRect (ph);
+        if (placeholder)
+        {
+            g.setColour (Colours::muted);
+            g.setFont (Theme::mono (8.0f, 0.12f));
+            g.drawFittedText (name.toUpperCase(), ph.reduced (8.0f).toNearestInt(), juce::Justification::centred, 2);
+        }
     }
-    if (placeholder)
-    {
-        g.setColour (Colours::grey.withAlpha (0.8f));
-        g.setFont (Theme::typewriter (13.0f));
-        g.drawFittedText (name.toUpperCase(), ph.reduced (8.0f).toNearestInt(), juce::Justification::centred, 2);
-    }
-    g.setColour (juce::Colours::black.withAlpha (0.35f));
-    g.drawRect (ph, 1.0f);
+    g.setColour (juce::Colours::white.withAlpha (0.06f));
+    g.drawRoundedRectangle (ph, 9.0f, 1.0f);
 
     // name + description
-    const auto textArea = f.withTop (ph.getBottom() + 2.0f).reduced (6.0f, 0.0f);
-    const bool red = slot == 2;
-    g.setColour (red ? Colours::red : Colours::ink);
-    g.setFont (Theme::marker (21.0f));
-    g.drawFittedText (name.toUpperCase(), textArea.withHeight (textArea.getHeight() * 0.58f).toNearestInt(),
-                      juce::Justification::centredBottom, 1, 0.75f);
-    g.setColour (Colours::ink.withAlpha (0.85f));
-    g.setFont (Theme::typewriter (12.5f));
-    g.drawFittedText (desc, textArea.withTrimmedTop (textArea.getHeight() * 0.58f).toNearestInt(),
-                      juce::Justification::centredTop, 1, 0.8f);
+    const auto text = f.reduced (8.0f, 0.0f).withTop (ph.getBottom() + 5.0f);
+    g.setColour (Colours::text);
+    g.setFont (Theme::bold (12.5f));
+    g.drawFittedText (name.toUpperCase(), text.withHeight (14.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.7f);
+    g.setColour (Colours::muted);
+    g.setFont (Theme::mono (7.0f, 0.14f));
+    g.drawFittedText (desc.toUpperCase(), text.withTrimmedTop (15.0f).withHeight (10.0f).toNearestInt(), juce::Justification::centredLeft, 1, 0.75f);
 
-    // selection frame + pin with A/B tag
+    // A / B chip (chrome pill on the top edge)
     if (slot > 0)
     {
-        g.setColour (Colours::red.withMultipliedBrightness (0.8f).withAlpha (0.9f));
-        g.drawRect (f.reduced (1.0f), 2.5f);
-
-        const auto pin = getPinPosition();
-        auto tag = juce::Rectangle<float> (18.0f, 18.0f).withCentre (pin.translated (14.0f, 16.0f));
-        juce::Graphics::ScopedSaveState ss (g);
-        g.addTransform (juce::AffineTransform::rotation (0.12f, tag.getCentreX(), tag.getCentreY()));
-        g.setColour (juce::Colours::black.withAlpha (0.35f));
-        g.fillRect (tag.translated (1.0f, 1.5f));
-        g.setColour (Colours::paper);
-        g.fillRect (tag);
-        g.setColour (Colours::ink);
-        g.drawRect (tag, 0.8f);
-        g.setFont (Theme::typewriter (14.0f));
-        g.drawText (slot == 1 ? "A" : "B", tag, juce::Justification::centred, false);
+        const auto chip = juce::Rectangle<float> (19.0f, 18.0f).withCentre (getPinPosition());
+        Theme::drawChromePill (g, chip, 0.8f);
+        g.setColour (Colours::well);
+        g.setFont (Theme::display (10.0f));
+        g.drawText (slot == 1 ? "A" : "B", chip.translated (-0.5f, 0.5f), juce::Justification::centred, false);
     }
-    if (slot > 0)
-        Theme::drawPin (g, getPinPosition(), 7.0f);
 }
 
 void PolaroidCard::mouseDown (const juce::MouseEvent& e)
@@ -187,10 +185,21 @@ void PolaroidGrid::paintOverChildren (juce::Graphics& g)
         if (p <= 0.0f || c->getSlot() == 0)
             continue;
         const auto f = c->getFrameInParent();
-        g.setColour (Colours::red.withAlpha (0.5f + 0.5f * p));
-        g.drawRect (f.reduced (1.0f), 2.5f + p);
-        g.setColour (Colours::red.withAlpha (0.18f * p));
-        g.drawRect (f.reduced (4.0f), 3.0f);
+        g.setColour (Colours::accentL.withAlpha (0.25f + 0.45f * p));
+        g.drawRoundedRectangle (f.expanded (1.5f), 15.0f, 1.5f + p);
+
+        // LIVE badge on the photo
+        const auto badge = juce::Rectangle<float> (f.getX() + 13.0f, f.getY() + 13.0f, 40.0f, 14.0f);
+        g.setColour (Colours::bg.withAlpha (0.7f));
+        g.fillRoundedRectangle (badge, 7.0f);
+        g.setColour (Colours::line2);
+        g.drawRoundedRectangle (badge, 7.0f, 1.0f);
+        const auto dot = juce::Rectangle<float> (5.0f, 5.0f).withCentre ({ badge.getX() + 8.0f, badge.getCentreY() });
+        g.setColour (Colours::accentL.withAlpha (0.4f + 0.6f * p));
+        g.fillEllipse (dot);
+        g.setColour (Colours::text);
+        g.setFont (Theme::mono (6.5f, 0.2f));
+        g.drawText ("LIVE", badge.withTrimmedLeft (14.0f), juce::Justification::centredLeft, false);
     }
 }
 

@@ -1,20 +1,20 @@
-# Voodoo Killa
+# TrapWin Timer
 
-*Cast a preset. Kill the melody.* – melodický time/FX plugin ze série Killa (VST3 + Standalone, JUCE 8).
+Halftime, tape a time FX pro melodie od TrapWin (VST3 + Standalone, JUCE 8).
 
 ## Build (Windows, Visual Studio 2022)
 
 ```bat
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake -S . -B build -A x64
 cmake --build build --config Release
 ```
 
 JUCE 8.0.15 se stáhne automaticky (`FetchContent`). Výstupy:
 
-- `build\VoodooKilla_artefacts\Release\VST3\Voodoo Killa.vst3`
-- `build\VoodooKilla_artefacts\Release\Standalone\Voodoo Killa.exe`
+- `build\VoodooKilla_artefacts\Release\VST3\TrapWin Timer.vst3`
+- `build\VoodooKilla_artefacts\Release\Standalone\TrapWin Timer.exe`
 
-Instalace: zkopíruj celou složku `Voodoo Killa.vst3` do `C:\Program Files\Common Files\VST3`.
+Instalace: zkopíruj celou složku `TrapWin Timer.vst3` do `C:\Program Files\Common Files\VST3`.
 
 Testy: `build\VoodooKillaTests_artefacts\Release\VoodooKillaTests.exe` (unit testy, offline render všech
 96 presetů, CPU benchmark). Na macOS/Linuxu stejně s Ninja/Xcode; na macOS se navíc staví AU.
@@ -25,26 +25,29 @@ Testy: `build\VoodooKillaTests_artefacts\Release\VoodooKillaTests.exe` (unit tes
 |---|---|---|
 | C2 – B2 (48–59) | C4 – B4 | výběr kategorie 1–12 |
 | C3 – G3 (60–67) | C5 – G5 | karty 1–8 aktuální kategorie (velocity = AMOUNT, držení = Hold) |
-| pod C2 (< 48) | pod C4 | spouští 808 DUCK (když není sidechain) |
+| pod C2 (< 48) | pod C4 | spouští DUCK FOR 808 (když není sidechain) |
 
 ## Ovládání
 
 - **Klik na kartu** = preset A (B se zruší). **Shift/pravý klik** = preset B → Morph A/B.
 - **A|B** v liště = kam jde další obyčejný klik; pravý klik na A|B = zrušit B.
-- **KILL** = náhodný preset (🔒 = jen aktuální kategorie), **pravý klik** = Mutate (±15 %). 🎲 v liště = náhodná dvojice A/B.
-- **KILL PAD**: X = MORPH (s B) nebo AMOUNT (jen A), Y = TONE, dvojklik = střed.
+- **KILL** = náhodný preset (zámek = jen aktuální kategorie), **pravý klik** = Mutate (±15 %).
+- **KILL PAD**: X = MORPH (s B) nebo AMOUNT (jen A), Y = TONE (BRIGHT/DARK), dvojklik = střed.
+- **HALFTIME ENGINE** (upravuje preset A, u presetu bez halftime ho přidá):
+  - SPEED 1.5× / 2× / 3× / 4×
+  - LOOP ¼ taktu … 4 takty, T = triola
+  - MODE: TAPE = pitch klesá, KEY = zůstane v tónině (oktáva), HOLD = pitch se nemění
+  - REV = pozpátku
+  - SMOOTH = crossfade na švu smyčky, BRAKE = rozjezd z normální rychlosti do halftime, FADE = postupný nástup
+- **WHEN** = kdy efekt běží (Always, Hold, konec 4/8 taktů, poslední doba, Pattern + editor patternu).
 - Knoby: tah nahoru/dolů, Ctrl = jemně, dvojklik = výchozí, kolečko.
-- ⚙ = velikost okna 100/125/150 %, složka uživatelských presetů
-  (`Documents/Killa/Voodoo Killa/Presets`).
+- ⚙ = velikost okna, složka uživatelských presetů (`Documents/TrapWin/TrapWin Timer/Presets`).
 
 ## Grafika (výměna bez změny kódu)
 
 | Soubor | Použití |
 |---|---|
-| `Resources/Logo/logo.png`, `logo@2x.png` | logo |
-| `Resources/Textures/background.png`, `paper.png` | dlaždice pozadí / papíru |
-| `Resources/Textures/tape_1.png` … `tape_3.png` | kousky pásky |
-| `Resources/Textures/pin.png` | červený špendlík |
+| `Resources/Logo/logo.png`, `logo@2x.png` | logo TrapWin |
 | `Resources/Photos/<kategorie>_<číslo>.jpg` | 96 fotek (prompty v `Resources/Photos/prompts.md`) |
 
 Chybějící soubor = automaticky placeholder. Po přidání souborů znovu spusť `cmake` (glob) a build.
@@ -53,21 +56,16 @@ Presety se generují z `Tools/gen_factory.py` → `Resources/Presets/factory.jso
 ## Test ve FL Studiu
 
 1. Options → Manage plugins → přidej `C:\Program Files\Common Files\VST3` → *Find more plugins*.
-2. Dej **Voodoo Killa** do mixer insertu s melodií (sample/keys), pusť pattern ve smyčce (např. 140 BPM).
-3. Klikni na **HALFCUT → Halfcut**: melodie hraje v půlce tempa a na každém taktu se vrací do synchronu.
-4. **DEAD TAPE → Flatline** (Every 4): tape stop jen v posledním taktu každé 4taktové fráze.
-5. **GLITCH RITVAL → Spiral** (Last Beat): zrychlující roll na poslední době taktu.
-6. Klik na *Halfcut*, Shift+klik na *Slow Grave* → táhni tečkou v KILL PADu zleva doprava:
-   plynulý přechod, bez lupanců; v polovině se přepne trigger.
-7. Trigger **Hold** → drž myš na kartě: efekt běží jen po dobu držení.
-8. Piano roll na kanálu posílajícím MIDI do pluginu (Channel settings → MIDI out / *Patcher*):
-   C4 = kategorie 1, C5–G5 = karty; slabší velocity = menší AMOUNT.
-9. Změna tempa, skok v playlistu, loop a stop: efekt se znovu srovná (bez výpadků a lupanců).
-10. Ulož projekt, zavři a otevři: vrátí se A, B, morph, makra, trigger, steps i velikost okna.
-11. **LOCK IN → Mute for 808** + 808 DUCK: pošli do sidechain vstupu pluginu 808 (FL: route kanál
-    808 do insertu s Voodoo Killa jako sidechain) nebo hraj MIDI noty pod C4.
+2. Dej **TrapWin Timer** do mixer insertu s melodií, pusť pattern ve smyčce (např. 140 BPM).
+3. **HALFCUT → Halfcut**: melodie hraje v půlce tempa a na konci smyčky se vrací do synchronu.
+4. V HALFTIME ENGINE přepínej SPEED, LOOP, MODE a REV: změna je slyšet hned, karta dostane `*`.
+5. Klik na *Halfcut*, Shift+klik na *Slow Grave* → táhni tečkou v KILL PADu nebo MORPH fader: plynulý přechod.
+6. WHEN → **Hold** → drž myš na kartě: efekt běží jen po dobu držení.
+7. Zastav transport: žádné praskání ani dozvuky, vlna i playhead stojí.
+8. Ulož projekt, zavři a otevři: vrátí se A, B, morph, makra, WHEN, pattern i velikost okna.
+9. Zavři FL Studio s otevřeným pluginem: nesmí zamrznout.
 
 ## Licence třetích stran
 
-Fonty *Special Elite* a *Permanent Marker* (Google Fonts) jsou pod licencí Apache 2.0,
-viz `Resources/Fonts/LICENSE-Apache-2.0.txt`.
+Fonty *Archivo* a *IBM Plex Mono* jsou pod licencí SIL Open Font License 1.1,
+viz `Resources/Fonts/OFL-Archivo.txt` a `Resources/Fonts/OFL-IBMPlexMono.txt`.

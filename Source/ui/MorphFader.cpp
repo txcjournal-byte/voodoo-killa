@@ -6,24 +6,23 @@ namespace vk::ui
 MorphFader::MorphFader (juce::RangedAudioParameter& p, std::function<void()> gestureEnded)
     : ParamControl (p, std::move (gestureEnded))
 {
-    setTooltip ("Morph between card A and card B (shift/right-click a second card to set B).");
+    setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
 }
 
 void MorphFader::setMorphEnabled (bool e)
 {
-    if (e != enabled)
-    {
-        enabled = e;
-        setMouseCursor (juce::MouseCursor::LeftRightResizeCursor);
-        repaint();
-    }
+    if (e != enabled) { enabled = e; repaint(); }
+}
+
+void MorphFader::setNames (const juce::String& a, const juce::String& b)
+{
+    if (a != nameA || b != nameB) { nameA = a; nameB = b; repaint(); }
 }
 
 juce::Rectangle<float> MorphFader::trackArea() const
 {
     auto b = getLocalBounds().toFloat();
-    return b.withTrimmedLeft (44.0f).withTrimmedRight (44.0f).withSizeKeepingCentre (b.getWidth() - 88.0f, 30.0f)
-            .withY (b.getCentreY() - 6.0f);
+    return { b.getX() + 34.0f, b.getY() + 44.0f, b.getWidth() - 68.0f, 6.0f };
 }
 
 float MorphFader::valueAt (float x) const
@@ -35,38 +34,51 @@ float MorphFader::valueAt (float x) const
 void MorphFader::paint (juce::Graphics& g)
 {
     const auto b = getLocalBounds().toFloat();
+    g.setColour (Colours::accent);
+    g.setFont (Theme::mono (8.0f, 0.2f));
+    g.drawText ("MORPH", b.withHeight (14.0f), juce::Justification::centredLeft, false);
+    g.setColour (Colours::muted);
+    g.setFont (Theme::mono (7.0f, 0.16f));
+    const juce::String names = enabled ? (nameA + juce::String (juce::CharPointer_UTF8 (" \xe2\x86\x92 ")) + nameB).toUpperCase()
+                                       : juce::String ("PICK A SECOND CARD");
+    g.drawFittedText (names, b.withHeight (14.0f).withTrimmedLeft (52.0f).toNearestInt(), juce::Justification::centredRight, 1, 0.8f);
+
     const auto t = trackArea();
-    const auto ink = enabled ? Colours::ink : Colours::grey;
+    juce::Graphics::ScopedSaveState ss (g);
+    if (! enabled)
+        g.setOpacity (0.45f);
 
-    // A / B letters
-    g.setColour (ink);
-    g.setFont (Theme::marker (30.0f));
-    g.drawText ("A", juce::Rectangle<float> (0.0f, t.getY() - 8.0f, 44.0f, 44.0f), juce::Justification::centred);
-    g.drawText ("B", juce::Rectangle<float> (b.getRight() - 44.0f, t.getY() - 8.0f, 44.0f, 44.0f), juce::Justification::centred);
+    Theme::drawChromeText (g, "A", { b.getX(), t.getCentreY() - 13.0f, 26.0f, 26.0f }, Theme::display (19.0f), juce::Justification::centred, false);
+    Theme::drawChromeText (g, "B", { b.getRight() - 26.0f, t.getCentreY() - 13.0f, 26.0f, 26.0f }, Theme::display (19.0f), juce::Justification::centred, false);
 
-    // slot with tick marks
-    const auto slot = t.withSizeKeepingCentre (t.getWidth(), 10.0f);
-    g.setColour (juce::Colour (0xff0d0d0d));
-    g.fillRect (slot);
-    g.setColour (ink.withAlpha (0.75f));
-    for (int i = 0; i <= 40; ++i)
+    g.setColour (Colours::track);
+    g.fillRoundedRectangle (t, 3.0f);
+    g.setColour (Colours::line);
+    g.drawRoundedRectangle (t, 3.0f, 1.0f);
+
+    const float x = t.getX() + t.getWidth() * getNormalised();
+    if (x > t.getX() + 1.0f)
     {
-        const float x = t.getX() + t.getWidth() * (float) i / 40.0f;
-        const float h = (i % 5 == 0) ? 12.0f : 7.0f;
-        g.drawLine (x, slot.getY() - h * 0.5f + 5.0f, x, slot.getBottom() + h * 0.5f - 5.0f, 1.0f);
+        const auto fill = t.withRight (x);
+        g.setColour (Colours::accent.withAlpha (0.3f));
+        g.fillRoundedRectangle (fill.expanded (0.0f, 3.0f), 6.0f);
+        g.setGradientFill (juce::ColourGradient (Colours::accentD, t.getX(), 0.0f, Colours::accentL, x, 0.0f, false));
+        g.fillRoundedRectangle (fill, 3.0f);
     }
 
-    // handle
-    const float x = t.getX() + t.getWidth() * getNormalised();
-    auto handle = juce::Rectangle<float> (16.0f, 38.0f).withCentre ({ x, t.getCentreY() });
-    g.setColour (juce::Colours::black.withAlpha (0.5f));
-    g.fillRoundedRectangle (handle.translated (2.0f, 3.0f), 2.5f);
-    juce::ColourGradient grad (enabled ? Colours::red.brighter (0.2f) : Colours::grey, handle.getX(), handle.getY(),
-                               enabled ? Colours::redDark : Colours::greyDark, handle.getRight(), handle.getY(), false);
-    g.setGradientFill (grad);
-    g.fillRoundedRectangle (handle, 2.5f);
-    g.setColour (juce::Colours::black.withAlpha (0.6f));
-    g.drawLine (handle.getCentreX(), handle.getY() + 4.0f, handle.getCentreX(), handle.getBottom() - 4.0f, 1.5f);
+    g.setColour (Colours::muted.withAlpha (0.5f));
+    for (int i = 0; i <= 10; ++i)
+    {
+        const float tx = t.getX() + t.getWidth() * (float) i / 10.0f;
+        g.drawLine (tx, t.getBottom() + 6.0f, tx, t.getBottom() + 10.0f, 1.0f);
+    }
+
+    const auto thumb = juce::Rectangle<float> (22.0f, 22.0f).withCentre ({ x, t.getCentreY() });
+    juce::Path tp;
+    tp.addEllipse (thumb);
+    juce::DropShadow (Colours::glow.withAlpha (0.9f), 12, {}).drawForPath (g, tp);
+    g.setGradientFill (Theme::chromeGradient (thumb));
+    g.fillPath (tp);
 }
 
 void MorphFader::mouseDown (const juce::MouseEvent& e)
@@ -76,17 +88,13 @@ void MorphFader::mouseDown (const juce::MouseEvent& e)
     if (! enabled)
         return;
     beginEdit();
-    const auto t = trackArea();
-    const float hx = t.getX() + t.getWidth() * getNormalised();
-    grabOffset = std::abs (e.position.x - hx) < 12.0f ? e.position.x - hx : 0.0f;
-    setNormalised (valueAt (e.position.x - grabOffset));
+    setNormalised (valueAt (e.position.x));
 }
 
 void MorphFader::mouseDrag (const juce::MouseEvent& e)
 {
-    if (! enabled)
-        return;
-    setNormalised (valueAt (e.position.x - grabOffset));
+    if (enabled)
+        setNormalised (valueAt (e.position.x));
 }
 
 void MorphFader::mouseUp (const juce::MouseEvent&)
@@ -111,7 +119,7 @@ StepsBar::StepsBar (juce::AudioProcessorValueTreeState& state, std::function<voi
         params.push_back (p);
         attachments.push_back (std::make_unique<juce::ParameterAttachment> (*p, [this] (float) { repaint(); }));
     }
-    setTooltip ("Steps: the effect runs on the lit steps (Trigger = Steps).");
+    setTooltip ("Pattern: the effect runs on the lit steps (one bar).");
     setMouseCursor (juce::MouseCursor::PointingHandCursor);
 }
 
@@ -119,19 +127,14 @@ StepsBar::~StepsBar() = default;
 
 void StepsBar::setPlayingStep (int step, bool show)
 {
-    if (step != playingStep || show != showPlaying)
-    {
-        playingStep = step;
-        showPlaying = show;
-        repaint();
-    }
+    if (step != playingStep || show != showPlaying) { playingStep = step; showPlaying = show; repaint(); }
 }
 
 juce::Rectangle<float> StepsBar::cellBounds (int i) const
 {
     const float w = (float) getWidth() / (float) vk::kNumSteps;
-    const float s = juce::jmin (w - 3.0f, 24.0f);
-    return juce::Rectangle<float> (s, s).withCentre ({ w * ((float) i + 0.5f), s * 0.5f + 1.0f });
+    const float s = juce::jmin (w - 4.0f, 22.0f);
+    return juce::Rectangle<float> (s, s).withCentre ({ w * ((float) i + 0.5f), s * 0.5f + 2.0f });
 }
 
 int StepsBar::stepAt (juce::Point<float> p) const
@@ -153,18 +156,27 @@ void StepsBar::paint (juce::Graphics& g)
     {
         const auto c = cellBounds (i);
         const bool on = isOn (i);
-        g.setColour (on ? Colours::red : juce::Colour (0xff0e0e0e));
-        g.fillRect (c.reduced (2.0f));
-        g.setColour (Colours::paper.withAlpha (0.85f));
-        g.drawRect (c, 1.5f);
+        if (on)
+        {
+            g.setColour (Colours::accent.withAlpha (0.3f));
+            g.fillRoundedRectangle (c.expanded (2.0f), 6.0f);
+            g.setGradientFill (juce::ColourGradient (Colours::accentL, 0.0f, c.getY(), Colours::accentD, 0.0f, c.getBottom(), false));
+        }
+        else
+        {
+            g.setColour (Colours::well);
+        }
+        g.fillRoundedRectangle (c, 5.0f);
+        g.setColour (on ? Colours::accentL.withAlpha (0.6f) : Colours::line2);
+        g.drawRoundedRectangle (c, 5.0f, 1.0f);
         if (showPlaying && i == playingStep)
         {
-            g.setColour (juce::Colours::white.withAlpha (on ? 0.45f : 0.2f));
-            g.fillRect (c.reduced (4.0f));
+            g.setColour (Colours::text.withAlpha (0.5f));
+            g.drawRoundedRectangle (c.expanded (2.5f), 7.0f, 1.2f);
         }
-        g.setColour (Colours::paper);
-        g.setFont (Theme::typewriter (i >= 9 ? 10.0f : 11.5f));
-        g.drawText (juce::String (i + 1), juce::Rectangle<float> (c.getX() - 3.0f, c.getBottom() + 3.0f, c.getWidth() + 6.0f, 14.0f),
+        g.setColour (i % 4 == 0 ? Colours::text2 : Colours::muted);
+        g.setFont (Theme::mono (7.5f, 0.0f));
+        g.drawText (juce::String (i + 1), juce::Rectangle<float> (c.getX() - 4.0f, c.getBottom() + 4.0f, c.getWidth() + 8.0f, 12.0f),
                     juce::Justification::centred, false);
     }
 }
@@ -180,11 +192,7 @@ void StepsBar::mouseDown (const juce::MouseEvent& e)
 void StepsBar::mouseDrag (const juce::MouseEvent& e)
 {
     const int i = stepAt (e.position);
-    if (i != lastPainted)
-    {
-        lastPainted = i;
-        setStep (i, paintValue);
-    }
+    if (i != lastPainted) { lastPainted = i; setStep (i, paintValue); }
 }
 
 void StepsBar::mouseUp (const juce::MouseEvent&)
@@ -194,67 +202,82 @@ void StepsBar::mouseUp (const juce::MouseEvent&)
 }
 
 // ===========================================================================
-TriggerBar::TriggerBar (juce::RangedAudioParameter& p, std::function<void()> gestureEnded)
-    : ParamControl (p, std::move (gestureEnded))
+WhenSelector::WhenSelector (juce::RangedAudioParameter& p, juce::AudioProcessorValueTreeState& s, std::function<void()> gestureEnded)
+    : ParamControl (p, gestureEnded), state (s), gestureEnd (gestureEnded)
 {
     setMouseCursor (juce::MouseCursor::PointingHandCursor);
+    setTooltip ("When the effect runs: always, while held, at the end of a 4/8-bar phrase, on the last beat or on a pattern.");
 }
 
-juce::Rectangle<float> TriggerBar::buttonBounds (int i) const
+juce::String WhenSelector::labelFor (int i)
 {
-    static const float widths[] = { 1.2f, 0.85f, 1.0f, 1.0f, 1.25f, 0.9f };
-    float total = 0.0f;
-    for (auto w : widths) total += w;
-    const float gap = 6.0f;
-    const float unit = ((float) getWidth() - gap * 5.0f) / total;
-    float x = 0.0f;
-    for (int k = 0; k < i; ++k) x += widths[k] * unit + gap;
-    return { x, 2.0f, widths[i] * unit, (float) getHeight() - 4.0f };
+    static const char* names[] = { "Always", "Hold", "End of 4 bars", "End of 8 bars", "Last beat", "Pattern" };
+    return names[juce::jlimit (0, 5, i)];
 }
 
-int TriggerBar::buttonAt (juce::Point<float> p) const
+juce::Rectangle<float> WhenSelector::pillArea() const
 {
+    auto b = getLocalBounds().toFloat();
+    return b.withTrimmedLeft (52.0f).withSizeKeepingCentre (b.getWidth() - 52.0f, 26.0f);
+}
+
+void WhenSelector::paint (juce::Graphics& g)
+{
+    const auto b = getLocalBounds().toFloat();
+    g.setColour (Colours::text2);
+    g.setFont (Theme::mono (7.5f, 0.18f));
+    g.drawText ("WHEN", b.withWidth (52.0f), juce::Justification::centredLeft, false);
+
+    const auto r = pillArea();
+    g.setColour (Colours::well);
+    g.fillRoundedRectangle (r, 13.0f);
+    g.setColour (isMouseOver() ? Colours::accentL : Colours::line2);
+    g.drawRoundedRectangle (r, 13.0f, 1.0f);
+    g.setColour (Colours::text);
+    g.setFont (Theme::bold (11.5f));
+    g.drawFittedText (labelFor (juce::roundToInt (getPlain())).toUpperCase(), r.reduced (12.0f, 0.0f).withTrimmedRight (12.0f).toNearestInt(),
+                      juce::Justification::centredLeft, 1, 0.8f);
+    juce::Path tri;
+    const float x = r.getRight() - 14.0f, y = r.getCentreY();
+    tri.addTriangle (x - 4.0f, y - 2.5f, x + 4.0f, y - 2.5f, x, y + 3.0f);
+    g.setColour (Colours::accentL);
+    g.fillPath (tri);
+}
+
+void WhenSelector::mouseUp (const juce::MouseEvent& e)
+{
+    if (! getLocalBounds().contains (e.getPosition()))
+        return;
+
+    juce::PopupMenu m;
+    const int current = juce::roundToInt (getPlain());
     for (int i = 0; i < (int) vk::TriggerMode::count; ++i)
-        if (buttonBounds (i).expanded (3.0f, 0.0f).contains (p))
-            return i;
-    return -1;
-}
+        m.addItem (i + 1, labelFor (i), true, i == current);
+    m.addSeparator();
+    m.addItem (100, "Edit pattern...");
 
-void TriggerBar::paint (juce::Graphics& g)
-{
-    const int active = juce::roundToInt (getPlain());
-    for (int i = 0; i < (int) vk::TriggerMode::count; ++i)
+    juce::Component::SafePointer<WhenSelector> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this).withMinimumWidth (getWidth()), [safe] (int r)
     {
-        const auto r = buttonBounds (i);
-        const bool on = i == active;
-        g.setColour (juce::Colour (0xff0e0e0e));
-        g.fillRect (r);
-        g.setColour (on ? Colours::red : Colours::paper.withAlpha (0.8f));
-        g.drawRect (r, on ? 2.0f : 1.2f);
-        g.setFont (Theme::typewriter (12.5f));
-        g.setColour (on ? Colours::red : Colours::paper);
-        g.drawFittedText (vk::triggerLabel ((vk::TriggerMode) i), r.reduced (2.0f, 0.0f).toNearestInt(), juce::Justification::centred, 1, 0.7f);
-    }
+        if (safe == nullptr || r == 0)
+            return;
+        if (r == 100)
+        {
+            safe->showPatternEditor();
+            return;
+        }
+        safe->setNormalisedComplete (safe->param.convertTo0to1 ((float) (r - 1)));
+        if (r - 1 == (int) vk::TriggerMode::steps)
+            safe->showPatternEditor();
+    });
 }
 
-void TriggerBar::mouseUp (const juce::MouseEvent& e)
+void WhenSelector::showPatternEditor()
 {
-    const int i = buttonAt (e.position);
-    if (i >= 0)
-        setNormalisedComplete (param.convertTo0to1 ((float) i));
-}
-
-juce::String TriggerBar::getTooltip()
-{
-    static const char* tips[] = {
-        "Always: the effect runs all the time.",
-        "Hold: runs only while a card or MIDI key is held.",
-        "Every 4: runs on the end of every 4-bar phrase.",
-        "Every 8: runs on the end of every 8-bar phrase.",
-        "Last Beat: runs on the last beat of every bar.",
-        "Steps: runs on the lit steps of the 16-step bar."
-    };
-    const int i = buttonAt (getMouseXYRelative().toFloat());
-    return i >= 0 ? juce::String (tips[i]) : juce::String ("When the effect runs.");
+    auto bar = std::make_unique<StepsBar> (state, gestureEnd);
+    bar->setSize (400, 44);
+    // shown inside the plugin window (a separate desktop window can hide behind the host's window)
+    auto* top = getTopLevelComponent();
+    juce::CallOutBox::launchAsynchronously (std::move (bar), top->getLocalArea (this, getLocalBounds()), top);
 }
 } // namespace vk::ui

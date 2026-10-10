@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(VoodooKilla VERSION 0.1.0 LANGUAGES C CXX)
+project(TrapWinTimer VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -70,11 +70,12 @@ if(APPLE)
 endif()
 
 juce_add_plugin(VoodooKilla
-    COMPANY_NAME              "Killa"
-    PRODUCT_NAME              "Voodoo Killa"
-    BUNDLE_ID                 com.killa.voodookilla
-    PLUGIN_MANUFACTURER_CODE  Klla
-    PLUGIN_CODE               Vdkl
+    COMPANY_NAME              "TrapWin"
+    COMPANY_WEBSITE           "https://trapwin.com"
+    PRODUCT_NAME              "TrapWin Timer"
+    BUNDLE_ID                 com.trapwin.timer
+    PLUGIN_MANUFACTURER_CODE  Trpw
+    PLUGIN_CODE               TwTm
     FORMATS                   ${VK_FORMATS}
     IS_SYNTH                  FALSE
     NEEDS_MIDI_INPUT          TRUE
@@ -84,7 +85,7 @@ juce_add_plugin(VoodooKilla
     COPY_PLUGIN_AFTER_BUILD   FALSE
     VST3_CATEGORIES           Fx Delay Modulation
     AU_MAIN_TYPE              kAudioUnitType_MusicEffect
-    DESCRIPTION               "Cast a preset. Kill the melody.")
+    DESCRIPTION               "Halftime, tape and time FX for melodies.")
 
 target_sources(VoodooKilla PRIVATE ${VK_PLUGIN_SOURCES} ${VK_ENGINE_SOURCES} ${VK_UI_SOURCES})
 target_include_directories(VoodooKilla PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Source)
@@ -141,7 +142,7 @@ target_include_directories(VoodooKillaSnapshot PRIVATE ${CMAKE_CURRENT_SOURCE_DI
 target_compile_options(VoodooKillaSnapshot PRIVATE ${VK_WARNING_TWEAKS})
 target_compile_definitions(VoodooKillaSnapshot PRIVATE
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1
-    JucePlugin_Name="Voodoo Killa" JucePlugin_VersionString="${PROJECT_VERSION}")
+    JucePlugin_Name="TrapWin Timer" JucePlugin_VersionString="${PROJECT_VERSION}")
 target_link_libraries(VoodooKillaSnapshot PRIVATE
     VoodooKillaData juce::juce_audio_utils juce::juce_dsp
     juce::juce_recommended_config_flags)

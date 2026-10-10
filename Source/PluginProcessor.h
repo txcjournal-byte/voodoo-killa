@@ -21,7 +21,7 @@ namespace ParamIDs
 }
 
 /**
-    Voodoo Killa processor.
+    TrapWin Timer processor.
 
     Threading model
     - Message thread owns the selection (slot A / slot B PresetInfo, category, undo history).
@@ -85,6 +85,8 @@ public:
     void stepPreset (int delta);
     /** KILL: random preset (respecting the category lock). Mutate: +-15 % of the current A. */
     void kill (bool mutate, uint32_t seed = 0);
+    /** Halftime Engine: edits slot A's time settings (turns a preset without halftime into one). */
+    void editHalftime (const std::function<void (vk::TimeParams&, float& lengthBeats)>& edit, bool finished);
 
     int getCurrentCategory() const noexcept { return currentCategory; }
     void setCurrentCategory (int category);
