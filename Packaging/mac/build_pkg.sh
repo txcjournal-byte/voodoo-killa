@@ -73,15 +73,31 @@ productbuild --distribution "$WORK/distribution.xml" \
              ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} \
              "$PKG"
 
-# notarize + staple (only when the pkg is signed)
-if [[ -n "${MAC_INSTALLER_IDENTITY:-}" ]]; then
+notarize() {   # notarize <file>: submit to Apple, fail on rejection, staple the ticket
+    local file="$1"
+    local args=()
     if [[ -n "${MAC_NOTARY_PROFILE:-}" ]]; then
-        xcrun notarytool submit "$PKG" --keychain-profile "$MAC_NOTARY_PROFILE" --wait
+        args=(--keychain-profile "$MAC_NOTARY_PROFILE")
     elif [[ -n "${MAC_APPLE_ID:-}" ]]; then
-        xcrun notarytool submit "$PKG" --apple-id "$MAC_APPLE_ID" --team-id "$MAC_TEAM_ID" --password "$MAC_APP_PASSWORD" --wait
+        args=(--apple-id "$MAC_APPLE_ID" --team-id "$MAC_TEAM_ID" --password "$MAC_APP_PASSWORD")
+    else
+        echo "warning: no notarization credentials - $file is signed but not notarized"
+        return 0
     fi
-    xcrun stapler staple "$PKG" || true
-fi
+    local out
+    out="$(xcrun notarytool submit "$file" "${args[@]}" --wait --output-format plist)"
+    echo "$out"
+    if ! grep -q "<string>Accepted</string>" <<<"$out"; then
+        local id
+        id="$(/usr/libexec/PlistBuddy -c 'Print :id' /dev/stdin <<<"$out" 2>/dev/null || true)"
+        [[ -n "$id" ]] && xcrun notarytool log "$id" "${args[@]}" || true
+        echo "notarization FAILED for $file"; exit 1
+    fi
+    xcrun stapler staple "$file"
+    xcrun stapler validate "$file"
+}
+
+[[ -n "${MAC_INSTALLER_IDENTITY:-}" ]] && notarize "$PKG"
 
 # .dmg with the installer + read me
 mkdir -p "$WORK/dmg"
@@ -94,5 +110,13 @@ for attempt in 1 2 3 4 5; do
     [[ $attempt == 5 ]] && { echo "hdiutil failed"; exit 1; }
     echo "hdiutil busy, retrying ($attempt)"; sleep $((attempt * 5))
 done
-[[ -n "${MAC_APP_IDENTITY:-}" ]] && codesign --force --timestamp --sign "$MAC_APP_IDENTITY" "$DMG"
-echo "done: $PKG and $OUT/TrapWin-Timer-$VERSION-macOS.dmg"
+if [[ -n "${MAC_APP_IDENTITY:-}" ]]; then
+    codesign --force --timestamp --sign "$MAC_APP_IDENTITY" "$DMG"
+    notarize "$DMG"
+    spctl -a -vv -t install "$PKG"
+    spctl -a -vv -t open --context context:primary-signature "$DMG"
+    SIGNED="signed + notarized"
+else
+    SIGNED="UNSIGNED test build"
+fi
+echo "done ($SIGNED): $PKG and $DMG"

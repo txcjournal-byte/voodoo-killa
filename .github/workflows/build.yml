@@ -2,6 +2,8 @@ name: Build
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:
@@ -28,6 +30,19 @@ jobs:
           Copy-Item "build/VoodooKilla_artefacts/Release/Standalone/TrapWin Timer.exe" dist/
           Copy-Item Packaging/README-USER.txt dist/README.txt
 
+      - name: Sign plug-in + app (optional, code-signing certificate)
+        shell: pwsh
+        env:
+          WIN_CERT_PFX: ${{ secrets.WIN_CERT_PFX }}
+          WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: |
+          if (-not $env:WIN_CERT_PFX) { Write-Host "No Windows certificate - unsigned build."; exit 0 }
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx", [Convert]::FromBase64String($env:WIN_CERT_PFX))
+          $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1).FullName
+          & $signtool sign /f "$env:RUNNER_TEMP\cert.pfx" /p "$env:WIN_CERT_PASSWORD" /fd sha256 /tr http://timestamp.digicert.com /td sha256 /d "TrapWin Timer" `
+            "dist\TrapWin Timer.vst3\Contents\x86_64-win\TrapWin Timer.vst3" "dist\TrapWin Timer.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build installer (Inno Setup)
         shell: pwsh
         run: |
@@ -35,6 +50,17 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y | Out-Null }
           & $iscc "/DAppVersion=$version" "/DSourceDir=$PWD\dist" "/DOutputDir=$PWD\installers" Packaging\windows\TrapWinTimer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Sign installer (optional)
+        shell: pwsh
+        env:
+          WIN_CERT_PFX: ${{ secrets.WIN_CERT_PFX }}
+          WIN_CERT_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: |
+          if (-not $env:WIN_CERT_PFX) { exit 0 }
+          $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1).FullName
+          & $signtool sign /f "$env:RUNNER_TEMP\cert.pfx" /p "$env:WIN_CERT_PASSWORD" /fd sha256 /tr http://timestamp.digicert.com /td sha256 /d "TrapWin Timer Setup" (Get-ChildItem installers\*.exe).FullName
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - uses: actions/upload-artifact@v4
@@ -63,6 +89,18 @@ jobs:
 
       - name: Run tests
         run: build/VoodooKillaTests_artefacts/Release/VoodooKillaTests
+
+      - name: Release builds must be signed
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          MAC_APP_IDENTITY: ${{ secrets.MAC_APP_IDENTITY }}
+          MAC_INSTALLER_IDENTITY: ${{ secrets.MAC_INSTALLER_IDENTITY }}
+          MAC_APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
+        run: |
+          if [ -z "$MAC_APP_IDENTITY" ] || [ -z "$MAC_INSTALLER_IDENTITY" ] || [ -z "$MAC_APPLE_ID" ]; then
+            echo "::error::Apple signing secrets are missing - see Packaging/DISTRIBUCE.md. A release is never published unsigned."
+            exit 1
+          fi
 
       - name: Import signing certificates (optional)
         env:
@@ -94,3 +132,26 @@ jobs:
         with:
           name: TrapWinTimer-macOS-Installer
           path: installers
+
+  # Tag a version (git tag v1.0.0 && git push origin v1.0.0) -> GitHub Release with both installers,
+  # ready to download and upload to the shop.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TrapWinTimer-*-Installer
+          merge-multiple: true
+          path: release
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la release
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "TrapWin Timer ${GITHUB_REF_NAME#v}" \
+            --notes "Windows: TrapWin-Timer-*-Windows-Setup.exe - macOS: TrapWin-Timer-*-macOS.dmg" \
+            release/*.exe release/*.dmg

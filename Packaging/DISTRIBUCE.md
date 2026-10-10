@@ -1,82 +1,103 @@
 # TrapWin Timer – od buildu do e-shopu
 
-Každý push na GitHub sestaví v **Actions** tyto balíčky:
+Každý push sestaví v GitHub **Actions** instalačky pro Windows i Mac.
+Když nahraješ tag verze (`v1.0.0`), vznikne navíc **GitHub Release** s hotovými soubory pro e-shop.
 
-| Artifact | Obsah |
+| Soubor | Pro koho |
 |---|---|
-| `TrapWinTimer-Windows-Installer` | `TrapWin-Timer-<verze>-Windows-Setup.exe` (VST3 + Standalone, odinstalace v Nastavení Windows) |
-| `TrapWinTimer-Windows-Plugin` | holé `TrapWin Timer.vst3` + `.exe` (ruční instalace / testování) |
-| `TrapWinTimer-macOS-Installer` | `TrapWin-Timer-<verze>-macOS.pkg` + `.dmg` (VST3 + AU + Standalone, Universal: Apple Silicon i Intel) |
+| `TrapWin-Timer-<verze>-Windows-Setup.exe` | Windows 10/11 64-bit – VST3 + Standalone |
+| `TrapWin-Timer-<verze>-macOS.dmg` | macOS 10.13+ (Apple Silicon i Intel) – VST3 + AU + Standalone |
 
-Verze se bere z `CMakeLists.txt` (`project(TrapWinTimer VERSION x.y.z ...)`) – před vydáním ji změň tam.
+---
 
-## 1. Testovací verze (teď)
+## Krok 1 – Apple (jednou, cca 30 min + schválení účtu)
 
-- **Windows:** spusť Setup.exe → plugin je v `C:\Program Files\Common Files\VST3`.
-  Bez podpisu ukáže SmartScreen „Neznámý vydavatel“ → *Další informace → Přesto spustit*.
-- **Mac (bez podpisu):** pravý klik na `.pkg` → *Otevřít* (případně Nastavení → Soukromí a zabezpečení → *Přesto otevřít*).
-  Takhle to posílej jen testerům, zákazníkům až podepsané (krok 2).
-
-## 2. Mac – podpis a notarizace (Apple Developer Program, 99 USD/rok)
-
-1. V developer.apple.com → Certificates vytvoř:
-   - **Developer ID Application** (podpis pluginů a aplikace)
-   - **Developer ID Installer** (podpis .pkg)
-2. Na developer účtu vytvoř **app-specific password** (appleid.apple.com → Sign-in and Security).
-3. Varianta A – **podepisování v GitHub Actions** (doporučuju, pak každý build vyjde hotový):
-   v repozitáři Settings → Secrets and variables → Actions přidej:
+1. **Apple Developer Program** – developer.apple.com/programs → Enroll (99 USD/rok).
+   Schválení trvá obvykle 1–2 dny (u firmy potřebuješ D-U-N-S číslo, jako fyzická osoba ne).
+2. Na Macu otevři **Xcode → Settings → Accounts** → přidej Apple ID → *Manage Certificates* → **+** →
+   - **Developer ID Application**
+   - **Developer ID Installer**
+   (Případně přes developer.apple.com → Certificates; certifikáty se uloží do Klíčenky.)
+3. **Klíčenka** (Keychain Access) → *Moje certifikáty* → označ oba „Developer ID …“ → pravý klik →
+   *Exportovat 2 položky* → `trapwin-certs.p12` + zvol heslo.
+4. **App-specific password**: appleid.apple.com → Sign-In and Security → App-Specific Passwords → vytvoř („GitHub notarize“).
+5. V Terminálu ve složce projektu:
+   ```bash
+   Packaging/mac/prepare_secrets.sh ~/Desktop/trapwin-certs.p12
+   ```
+   Skript vypíše přesné hodnoty a obsah `.p12` dá do schránky.
+6. GitHub → repozitář → **Settings → Secrets and variables → Actions → New repository secret** – založ:
 
    | Secret | Hodnota |
    |---|---|
-   | `MAC_CERTS_P12` | oba certifikáty exportované z Klíčenky jako jeden `.p12`, zakódované `base64 -i certs.p12` |
+   | `MAC_CERTS_P12` | vložit ze schránky (krok 5) |
    | `MAC_CERTS_PASSWORD` | heslo k `.p12` |
    | `MAC_APP_IDENTITY` | `Developer ID Application: Jméno (TEAMID)` |
    | `MAC_INSTALLER_IDENTITY` | `Developer ID Installer: Jméno (TEAMID)` |
-   | `MAC_APPLE_ID` | e-mail Apple ID |
    | `MAC_TEAM_ID` | 10znakové Team ID |
-   | `MAC_APP_PASSWORD` | app-specific password |
+   | `MAC_APPLE_ID` | e-mail Apple ID |
+   | `MAC_APP_PASSWORD` | app-specific password z kroku 4 |
 
-   Další build pak pluginy podepíše (hardened runtime), `.pkg` podepíše, pošle Applu k notarizaci a „staplne“.
-4. Varianta B – **ručně na svém Macu** (Xcode + CMake):
+Od té chvíle každý build na Macu: podepíše plugin i aplikaci (hardened runtime), podepíše `.pkg`,
+pošle ho Applu k **notarizaci**, přibije tiket (staple), totéž s `.dmg`, a ověří výsledek (`spctl`).
+Když Apple notarizaci odmítne, build selže a v logu je důvod.
+
+> Bez GitHubu to jde i ručně na Macu – viz „Ruční build na Macu“ dole.
+
+## Krok 2 – Windows (volitelné)
+
+Instalačka funguje i nepodepsaná – Windows jen při prvním spuštění ukáže modré okno SmartScreen
+(*Další informace → Přesto spustit*). Hodně menších výrobců pluginů tak prodává; do popisu v e-shopu to stačí napsat.
+
+Když budeš chtít podpis:
+- **Certifikát v souboru .pfx** (některé OV/EV certifikáty): přidej secrets `WIN_CERT_PFX` (`base64` z .pfx)
+  a `WIN_CERT_PASSWORD` → build sám podepíše plugin, aplikaci i instalačku.
+- **Cloudový podpis** (Azure Trusted Signing, SSL.com eSigner, Certum SimplySign – dnes nejlevnější a nejčastější,
+  protože nové certifikáty se do souboru už exportovat nedají): napiš mi, kterou službu máš, a doplním ji do buildu.
+
+## Krok 3 – Vydání verze
+
+1. Verze je v `CMakeLists.txt`: `project(TrapWinTimer VERSION 1.0.0 ...)`.
+2. Tag:
    ```bash
-   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
-   cmake --build build --parallel --target VoodooKilla_VST3 VoodooKilla_AU VoodooKilla_Standalone
-   xcrun notarytool store-credentials trapwin --apple-id <email> --team-id <TEAMID> --password <app-specific>
-   MAC_APP_IDENTITY="Developer ID Application: Jméno (TEAMID)" \
-   MAC_INSTALLER_IDENTITY="Developer ID Installer: Jméno (TEAMID)" \
-   MAC_NOTARY_PROFILE=trapwin \
-   Packaging/mac/build_pkg.sh build/VoodooKilla_artefacts/Release 1.0.0 installers
+   git tag v1.0.0
+   git push origin v1.0.0
    ```
-5. Kontrola: `spctl -a -vv -t install installers/TrapWin-Timer-1.0.0-macOS.pkg` → *accepted, Notarized Developer ID*.
-   AU ověříš v Terminálu: `auval -v aumf TwTm Trpw`.
+3. Actions sestaví, otestuje, podepíše a vytvoří **Release** (záložka *Releases* na GitHubu) s `.exe` a `.dmg`.
+   Release se **nikdy nevydá nepodepsaný** – bez Apple secrets build na tagu schválně selže.
 
-## 3. Windows – podpis (volitelné, ale doporučené)
+## Krok 4 – E-shop (Shopify)
 
-Bez podpisu instalačka funguje, jen SmartScreen varuje. Pro podpis potřebuješ code-signing certifikát
-(např. Azure Trusted Signing, Certum, Sectigo). Podepisuje se `signtool sign /fd sha256 /tr <timestamp-url> /td sha256 ...`
-nejdřív `TrapWin Timer.vst3\Contents\x86_64-win\TrapWin Timer.vst3` a `.exe`, pak výsledný Setup.exe.
-Až budeš mít certifikát, doplním to do workflow stejně jako u Macu.
+- Produkt jako digitální: aplikace **Shopify Digital Downloads** (zdarma) → k produktu nahraj oba soubory z Release.
+- Do popisu: *Windows 10/11 (64-bit), macOS 10.13+ (Apple Silicon & Intel) · VST3 / AU / Standalone ·
+  FL Studio, Ableton Live, Logic Pro, Studio One, Reaper, Cubase*.
+- Návod pro zákazníka je přímo v instalačce (README).
 
-## 4. Licence
+## Licence
 
-- **JUCE:** komerční prodej vyžaduje JUCE licenci (registrace na juce.com). Pro malé firmy existuje
-  bezplatná/levná úroveň podle ročního obratu – aktuální podmínky ověř na juce.com/get-juce. Splash screen
-  je v projektu vypnutý (`JUCE_DISPLAY_SPLASH_SCREEN=0`), což vyžaduje platnou licenci odpovídající úrovni.
-- **VST3:** Steinberg SDK je součást JUCE; logo „VST“ v e-shopu jen podle Steinberg VST guidelines.
-- **Fonty** Archivo a IBM Plex Mono: SIL OFL 1.1 (smí se vkládat do komerčního software).
-- **EULA:** `Packaging/EULA.txt` je **koncept** – zobrazuje se v obou instalačkách. Před prodejem ho nech zkontrolovat.
+- **JUCE** – pro prodej potřebuješ JUCE licenci odpovídající obratu (registrace na juce.com, pro malé výrobce
+  je nízká/bezplatná úroveň – aktuální podmínky ověř na juce.com/get-juce).
+- **EULA** (`Packaging/EULA.txt`) je **koncept**, zobrazí se v obou instalačkách – před prodejem nech zkontrolovat.
+- Fonty Archivo a IBM Plex Mono: SIL OFL 1.1 (komerční použití v software povoleno).
+- „VST“ je ochranná známka Steinberg – logo VST v e-shopu jen podle jejich pravidel (stačí text „VST3“).
 
-## 5. Do e-shopu (Shopify)
+## Ruční build na Macu (bez GitHubu)
 
-Na stažení dej zákazníkům dva soubory: `TrapWin-Timer-<verze>-Windows-Setup.exe` a `TrapWin-Timer-<verze>-macOS.dmg`
-(např. přes aplikaci Shopify Digital Downloads). Do popisu produktu: Windows 10/11 64-bit, macOS 10.13+ (Apple Silicon i Intel),
-VST3 / AU / Standalone, testováno ve FL Studiu a Ableton Live.
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+cmake --build build --parallel --target VoodooKilla_VST3 VoodooKilla_AU VoodooKilla_Standalone
+xcrun notarytool store-credentials trapwin --apple-id <email> --team-id <TEAMID> --password <app-specific>
+MAC_APP_IDENTITY="Developer ID Application: Jméno (TEAMID)" \
+MAC_INSTALLER_IDENTITY="Developer ID Installer: Jméno (TEAMID)" \
+MAC_NOTARY_PROFILE=trapwin \
+Packaging/mac/build_pkg.sh build/VoodooKilla_artefacts/Release 1.0.0 installers
+```
 
-## Kontrolní seznam před vydáním
+## Kontrolní seznam před prodejem
 
-- [ ] verze v `CMakeLists.txt`
-- [ ] Actions build zelený (testy prošly na Windows i Macu)
-- [ ] Mac: podepsáno + notarizováno (`spctl` = accepted)
+- [ ] Apple secrets nastavené, build zelený, v logu „signed + notarized“
+- [ ] Mac: `.dmg` stažený z prohlížeče se otevře a nainstaluje bez varování
 - [ ] Windows: instalace, odinstalace, reinstalace přes starší verzi
 - [ ] FL Studio (Win), Ableton Live (Win + Mac), Logic (AU): načtení, uložení projektu, zavření bez zamrznutí
 - [ ] EULA zkontrolovaná, JUCE licence vyřízená
+- [ ] verze v `CMakeLists.txt`, tag `v…` nahraný, Release obsahuje `.exe` + `.dmg`
