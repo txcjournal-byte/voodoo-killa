@@ -87,5 +87,12 @@ fi
 mkdir -p "$WORK/dmg"
 cp "$PKG" "$WORK/dmg/Install $NAME.pkg"
 cp "$ROOT/Packaging/README-USER.txt" "$WORK/dmg/Read Me.txt"
-hdiutil create -volname "$NAME $VERSION" -srcfolder "$WORK/dmg" -ov -format UDZO "$OUT/TrapWin-Timer-$VERSION-macOS.dmg"
+# hdiutil sometimes fails with "Resource busy" right after other disk activity -> retry
+DMG="$OUT/TrapWin-Timer-$VERSION-macOS.dmg"
+for attempt in 1 2 3 4 5; do
+    if hdiutil create -volname "$NAME $VERSION" -srcfolder "$WORK/dmg" -ov -format UDZO "$DMG"; then break; fi
+    [[ $attempt == 5 ]] && { echo "hdiutil failed"; exit 1; }
+    echo "hdiutil busy, retrying ($attempt)"; sleep $((attempt * 5))
+done
+[[ -n "${MAC_APP_IDENTITY:-}" ]] && codesign --force --timestamp --sign "$MAC_APP_IDENTITY" "$DMG"
 echo "done: $PKG and $OUT/TrapWin-Timer-$VERSION-macOS.dmg"
