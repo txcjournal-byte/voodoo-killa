@@ -62,13 +62,13 @@ juce::Point<float> PolaroidCard::getPinPosition() const
 void PolaroidCard::paint (juce::Graphics& g)
 {
     const auto f = frameBounds();
-    Theme::drawCard (g, f, 14.0f, slot == 1 ? 0.0f : 0.08f);
-
+    juce::Path outline;
+    outline.addRoundedRectangle (f, 14.0f);
+    if (slot > 0)   // glow behind the card
+        juce::DropShadow (Colours::glow.withAlpha (slot == 1 ? 0.75f : 0.5f), 18, {}).drawForPath (g, outline);
+    Theme::drawCard (g, f, 14.0f, slot > 0 ? 0.0f : 0.08f);
     if (slot > 0)
     {
-        juce::Path outline;
-        outline.addRoundedRectangle (f, 14.0f);
-        juce::DropShadow ((slot == 1 ? Colours::accentL : Colours::accent).withAlpha (slot == 1 ? 0.55f : 0.35f), 22, {}).drawForPath (g, outline);
         g.setColour (slot == 1 ? Colours::accentL : Colours::accent);
         g.strokePath (outline, juce::PathStrokeType (1.6f));
     }
@@ -112,8 +112,8 @@ void PolaroidCard::paint (juce::Graphics& g)
         const auto chip = juce::Rectangle<float> (19.0f, 18.0f).withCentre (getPinPosition());
         Theme::drawChromePill (g, chip, 0.8f);
         g.setColour (Colours::well);
-        g.setFont (Theme::display (10.0f));
-        g.drawText (slot == 1 ? "A" : "B", chip.translated (-0.5f, 0.5f), juce::Justification::centred, false);
+        g.setFont (Theme::bold (11.0f));
+        g.drawText (slot == 1 ? "A" : "B", chip, juce::Justification::centred, false);
     }
 }
 
@@ -215,7 +215,7 @@ std::optional<juce::Point<float>> PolaroidGrid::getPin (int slot, juce::Componen
 {
     for (auto& c : cards)
         if (c->getSlot() == slot)
-            return relativeTo.getLocalPoint (c.get(), c->getPinPosition());
+            return relativeTo.getLocalPoint (c.get(), c->getPinPosition().translated (0.0f, -9.0f));   // top of the chip
     return std::nullopt;
 }
 } // namespace vk::ui

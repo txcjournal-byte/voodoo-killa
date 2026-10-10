@@ -22,6 +22,7 @@ const juce::Rectangle<int> kMorph       { 536, 505, 226, 104 };
 const juce::Rectangle<int> kSide        { 774, 505, 210, 104 };
 
 constexpr float kMinScale = 0.6f, kMaxScale = 1.5f;
+constexpr float kDefaultScale = 0.9f;   // 900 x 563 logical px
 constexpr int kNumSizes = 6;
 const float kSizes[kNumSizes] = { 0.6f, 0.7f, 0.85f, 1.0f, 1.25f, 1.5f };
 
@@ -246,14 +247,12 @@ VoodooKillaAudioProcessorEditor::VoodooKillaAudioProcessorEditor (VoodooKillaAud
     if (auto* c = getConstrainer())
         c->setFixedAspectRatio ((double) kBaseWidth / (double) kBaseHeight);
 
+    // never open larger than a comfortable part of the screen (FL Studio / Ableton windows stay usable)
+    const float fit = comfortableScale();
     if (s <= 0.0f)
-    {
-        // first open: roughly the physical size of a comfortable size (~1250 px wide), whatever the Windows DPI
-        float dpi = 1.0f;
-        if (const auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
-            dpi = (float) d->scale;
-        s = std::round (juce::jlimit (kMinScale, 1.0f, 1.25f / juce::jmax (1.0f, dpi)) * 20.0f) / 20.0f;
-    }
+        s = juce::jmin (kDefaultScale, fit);   // first open
+    else
+        s = juce::jmin (s, juce::jmax (fit, kMinScale + 0.15f) * 1.2f);   // a stored size from a bigger screen
     sizeInitialised = true;
     applyScale (s);
     startTimerHz (30);
@@ -264,6 +263,18 @@ VoodooKillaAudioProcessorEditor::~VoodooKillaAudioProcessorEditor()
     stopTimer();
     tooltips.setLookAndFeel (nullptr);
     setLookAndFeel (nullptr);
+}
+
+float VoodooKillaAudioProcessorEditor::comfortableScale()
+{
+    // logical pixels (Windows DPI scaling / Retina already applied by JUCE)
+    juce::Rectangle<int> area (1280, 720);
+    if (const auto* d = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        area = d->userBounds.toNearestInt();
+    const float byWidth  = 0.60f * (float) area.getWidth()  / (float) kBaseWidth;
+    const float byHeight = 0.68f * (float) area.getHeight() / (float) kBaseHeight;
+    const float s = juce::jlimit (kMinScale, kMaxScale, juce::jmin (byWidth, byHeight));
+    return std::floor (s * 20.0f) / 20.0f;   // 5 % steps
 }
 
 void VoodooKillaAudioProcessorEditor::applyScale (float s)

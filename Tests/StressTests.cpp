@@ -1,3 +1,4 @@
+#include <ctime>
 #include <juce_core/juce_core.h>
 #include "engine/Engine.h"
 #include "engine/PresetLibrary.h"
@@ -9,6 +10,18 @@ using namespace vk;
     loops, stops and MIDI-style hold changes. Fails on NaN/Inf, runaway levels or a block that takes longer
     than its own real-time duration (which would stall the host).
 */
+/** CPU time of this thread (POSIX), so a shared / busy test machine pre-empting us does not count as DSP cost. */
+static double cpuSeconds() noexcept
+{
+   #if JUCE_WINDOWS
+    return juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks());
+   #else
+    timespec ts {};
+    clock_gettime (CLOCK_THREAD_CPUTIME_ID, &ts);
+    return (double) ts.tv_sec + (double) ts.tv_nsec * 1.0e-9;
+   #endif
+}
+
 class StressTests : public juce::UnitTest
 {
 public:
@@ -79,9 +92,9 @@ public:
                 juce::AudioBuffer<float> side (sc.getArrayOfWritePointers(), 2, n);
                 t.ppq = ppq;
 
-                const auto t0 = juce::Time::getHighResolutionTicks();
+                const double t0 = cpuSeconds();
                 e.process (io, &side, t, c);
-                const double took = juce::Time::highResolutionTicksToSeconds (juce::Time::getHighResolutionTicks() - t0);
+                const double took = cpuSeconds() - t0;
                 const double budget = n / sr;
                 if (n >= 256)
                     worstRatio = std::max (worstRatio, took / budget);

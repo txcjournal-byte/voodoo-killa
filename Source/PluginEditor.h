@@ -64,6 +64,7 @@ public:
 private:
     void timerCallback() override;
     void applyScale (float s);
+    static float comfortableScale();
     bool sizeInitialised = false;
 
     VoodooKillaAudioProcessor& proc;

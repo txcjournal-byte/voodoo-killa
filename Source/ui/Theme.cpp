@@ -52,8 +52,10 @@ ThemeResources::~ThemeResources() = default;
 
 juce::Font Theme::display (float h)  { return makeFont (res().displayFace, h, "Arial", true); }
 juce::Font Theme::bold (float h)     { return makeFont (res().boldFace, h, "Arial", true); }
-juce::Font Theme::mono (float h, float tracking)      { return makeFont (res().monoFace, h, "Courier New", false).withExtraKerningFactor (tracking); }
-juce::Font Theme::monoLight (float h, float tracking) { return makeFont (res().monoLightFace, h, "Courier New", false).withExtraKerningFactor (tracking); }
+// Small upper-case labels are drawn a bit larger with tighter tracking, so they stay readable at small window sizes.
+static float labelHeight (float h) noexcept { return h < 10.0f ? h * 1.2f : h * 1.1f; }
+juce::Font Theme::mono (float h, float tracking)      { return makeFont (res().monoFace, labelHeight (h), "Courier New", false).withExtraKerningFactor (tracking * 0.7f); }
+juce::Font Theme::monoLight (float h, float tracking) { return makeFont (res().monoLightFace, labelHeight (h), "Courier New", false).withExtraKerningFactor (tracking * 0.7f); }
 
 // ===========================================================================
 juce::Image Theme::getAsset (const juce::String& fileName)
@@ -209,6 +211,7 @@ void Theme::drawLogo (juce::Graphics& g, juce::Rectangle<float> area)
         img = getAsset ("logo@2x.png");
     if (img.isValid())
     {
+        g.setOpacity (1.0f);   // drawImage uses the current colour's alpha
         g.drawImage (img, area, juce::RectanglePlacement::xLeft | juce::RectanglePlacement::yMid);
         return;
     }

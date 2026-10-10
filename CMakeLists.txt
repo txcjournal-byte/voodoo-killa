@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(TrapWinTimer VERSION 0.2.0 LANGUAGES C CXX)
+project(TrapWinTimer VERSION 0.9.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -85,6 +85,11 @@ juce_add_plugin(VoodooKilla
     COPY_PLUGIN_AFTER_BUILD   FALSE
     VST3_CATEGORIES           Fx Delay Modulation
     AU_MAIN_TYPE              kAudioUnitType_MusicEffect
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "TrapWin Timer processes the audio input in the standalone app."
+    HARDENED_RUNTIME_ENABLED  TRUE
+    HARDENED_RUNTIME_OPTIONS  com.apple.security.device.audio-input
+    COPYRIGHT                 "Copyright TrapWin"
     DESCRIPTION               "Halftime, tape and time FX for melodies.")
 
 target_sources(VoodooKilla PRIVATE ${VK_PLUGIN_SOURCES} ${VK_ENGINE_SOURCES} ${VK_UI_SOURCES})

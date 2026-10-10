@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-gui-script minSpecVersion="2">
+    <title>TrapWin Timer @VERSION@</title>
+    <organization>com.trapwin</organization>
+    <license file="License.txt"/>
+    <readme file="ReadMe.txt"/>
+    <options customize="allow" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+    <domains enable_localSystem="true"/>
+    <choices-outline>
+        <line choice="vst3"/>
+        <line choice="au"/>
+        <line choice="app"/>
+    </choices-outline>
+    <choice id="vst3" title="VST3 plug-in" description="For Ableton Live, FL Studio, Cubase, Studio One, Reaper ...">
+        <pkg-ref id="com.trapwin.timer.vst3"/>
+    </choice>
+    <choice id="au" title="Audio Unit" description="For Logic Pro, GarageBand, Ableton Live ...">
+        <pkg-ref id="com.trapwin.timer.au"/>
+    </choice>
+    <choice id="app" title="Standalone app" description="TrapWin Timer as its own application.">
+        <pkg-ref id="com.trapwin.timer.app"/>
+    </choice>
+    <pkg-ref id="com.trapwin.timer.vst3" version="@VERSION@">vst3.pkg</pkg-ref>
+    <pkg-ref id="com.trapwin.timer.au" version="@VERSION@">au.pkg</pkg-ref>
+    <pkg-ref id="com.trapwin.timer.app" version="@VERSION@">app.pkg</pkg-ref>
+</installer-gui-script>

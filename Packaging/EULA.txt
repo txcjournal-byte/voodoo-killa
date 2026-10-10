@@ -1,0 +1,22 @@
+TRAPWIN TIMER - END USER LICENSE AGREEMENT (DRAFT - REVIEW BEFORE RELEASE)
+
+Copyright (c) TrapWin. All rights reserved.
+
+1. License. TrapWin grants you a non-exclusive, non-transferable license to install and use
+   TrapWin Timer ("the Software") on computers you own or control, for creating music,
+   including commercial releases. Audio you create with the Software is yours.
+
+2. Restrictions. You may not sell, rent, share, redistribute, decompile or modify the Software,
+   or remove any copyright notices, except where applicable law expressly permits it.
+
+3. No warranty. The Software is provided "as is", without warranty of any kind. TrapWin is not
+   liable for any damages arising from its use, to the maximum extent permitted by law.
+
+4. Third-party components. The Software uses the JUCE framework and the fonts Archivo and
+   IBM Plex Mono (SIL Open Font License 1.1). VST is a registered trademark of Steinberg Media
+   Technologies GmbH.
+
+5. Termination. This license ends automatically if you break its terms; you must then delete
+   all copies of the Software.
+
+Contact: https://trapwin.com

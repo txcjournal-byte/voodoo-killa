@@ -15,7 +15,7 @@ namespace Colours
     inline const juce::Colour track    { 0xff121a28 };
     inline const juce::Colour text     { 0xffe6ecf7 };
     inline const juce::Colour text2    { 0xffa9b6cc };
-    inline const juce::Colour muted    { 0xff6f7c93 };
+    inline const juce::Colour muted    { 0xff8592a8 };
     inline const juce::Colour accent   { 0xff7fa6e8 };
     inline const juce::Colour accentL  { 0xff9fc3ff };
     inline const juce::Colour accentD  { 0xff4f78c4 };
