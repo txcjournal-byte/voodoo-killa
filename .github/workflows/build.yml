@@ -156,6 +156,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la release
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "TrapWin Timer ${GITHUB_REF_NAME#v}" \
-            --notes "Windows: TrapWin-Timer-*-Windows-Setup.exe - macOS: TrapWin-Timer-*-macOS.dmg" \
-            release/*.exe release/*.dmg
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # release (and tag) created from the GitHub web UI -> just attach the installers
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release/*.exe release/*.dmg
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "TrapWin Timer ${GITHUB_REF_NAME#v}" \
+              --notes "Windows: TrapWin-Timer-*-Windows-Setup.exe - macOS: TrapWin-Timer-*-macOS.dmg" \
+              release/*.exe release/*.dmg
+          fi
