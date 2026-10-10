@@ -38,6 +38,11 @@ Když nahraješ tag verze (`v1.0.0`), vznikne navíc **GitHub Release** s hotov�
    | `MAC_APPLE_ID` | e-mail Apple ID |
    | `MAC_APP_PASSWORD` | app-specific password z kroku 4 |
 
+   **Místo app-specific password** (když neznáš heslo k Apple ID) jde notarizovat přes API klíč:
+   App Store Connect → Users and Access → Integrations → App Store Connect API → Team Keys → **+** (role *Developer*),
+   stáhni `.p8` a založ secrets `MAC_NOTARY_KEY` (celý obsah `.p8`), `MAC_NOTARY_KEY_ID` (Key ID)
+   a `MAC_NOTARY_ISSUER` (Issuer ID). Když je `MAC_NOTARY_KEY` nastavený, má přednost před heslem.
+
 Od té chvíle každý build na Macu: podepíše plugin i aplikaci (hardened runtime), podepíše `.pkg`,
 pošle ho Applu k **notarizaci**, přibije tiket (staple), totéž s `.dmg`, a ověří výsledek (`spctl`).
 Když Apple notarizaci odmítne, build selže a v logu je důvod.

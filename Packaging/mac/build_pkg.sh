@@ -8,6 +8,7 @@
 # Signing is optional and driven by environment variables:
 #   MAC_APP_IDENTITY        "Developer ID Application: Your Name (TEAMID)"   -> signs plug-ins + app
 #   MAC_INSTALLER_IDENTITY  "Developer ID Installer: Your Name (TEAMID)"     -> signs the .pkg
+#   MAC_NOTARY_KEY + MAC_NOTARY_KEY_ID + MAC_NOTARY_ISSUER   App Store Connect API key (.p8 text)
 #   MAC_NOTARY_PROFILE      keychain profile created with `xcrun notarytool store-credentials`
 #     or MAC_APPLE_ID + MAC_TEAM_ID + MAC_APP_PASSWORD (app-specific password)
 # Without them the bundles get an ad-hoc signature (fine for testing: right-click > Open).
@@ -76,7 +77,12 @@ productbuild --distribution "$WORK/distribution.xml" \
 notarize() {   # notarize <file>: submit to Apple, fail on rejection, staple the ticket
     local file="$1"
     local args=()
-    if [[ -n "${MAC_NOTARY_PROFILE:-}" ]]; then
+    if [[ -n "${MAC_NOTARY_KEY:-}" ]]; then
+        # App Store Connect API key (.p8 contents) - no Apple ID password needed
+        local keyfile="$WORK/AuthKey_${MAC_NOTARY_KEY_ID}.p8"
+        printf '%s\n' "$MAC_NOTARY_KEY" > "$keyfile"
+        args=(--key "$keyfile" --key-id "$MAC_NOTARY_KEY_ID" --issuer "$MAC_NOTARY_ISSUER")
+    elif [[ -n "${MAC_NOTARY_PROFILE:-}" ]]; then
         args=(--keychain-profile "$MAC_NOTARY_PROFILE")
     elif [[ -n "${MAC_APPLE_ID:-}" ]]; then
         args=(--apple-id "$MAC_APPLE_ID" --team-id "$MAC_TEAM_ID" --password "$MAC_APP_PASSWORD")

@@ -148,6 +148,9 @@ jobs:
           MAC_APPLE_ID: ${{ secrets.MAC_APPLE_ID }}
           MAC_TEAM_ID: ${{ secrets.MAC_TEAM_ID }}
           MAC_APP_PASSWORD: ${{ secrets.MAC_APP_PASSWORD }}
+          MAC_NOTARY_KEY: ${{ secrets.MAC_NOTARY_KEY }}
+          MAC_NOTARY_KEY_ID: ${{ secrets.MAC_NOTARY_KEY_ID }}
+          MAC_NOTARY_ISSUER: ${{ secrets.MAC_NOTARY_ISSUER }}
         run: |
           VERSION=$(sed -nE 's/^project\(TrapWinTimer VERSION ([0-9.]+).*/\1/p' CMakeLists.txt)
           Packaging/mac/build_pkg.sh build/VoodooKilla_artefacts/Release "$VERSION" installers
