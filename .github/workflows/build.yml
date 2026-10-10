@@ -112,14 +112,28 @@ jobs:
           security create-keychain -p ci "$KC"
           security set-keychain-settings -lut 21600 "$KC"
           security unlock-keychain -p ci "$KC"
-          # MAC_CERTS_P12 = one base64 .p12, or several separated by commas (e.g. one per identity -
-          # `security import` reads only the first identity from a .p12 not exported by Keychain Access)
+          # MAC_CERTS_P12 = one base64 .p12 (any number of identities), or several separated by commas.
+          # `security import` of a .p12 not exported by Keychain Access may take only its first identity,
+          # so every .p12 is unpacked with openssl and each key / certificate is imported on its own.
+          OPENSSL=/usr/bin/openssl; [ -x /opt/homebrew/opt/openssl@3/bin/openssl ] && OPENSSL=/opt/homebrew/opt/openssl@3/bin/openssl
+          LEGACY=""; TRAD=""; "$OPENSSL" version | grep -q '^OpenSSL 3' && { LEGACY="-legacy"; TRAD="-traditional"; }
+          W="$RUNNER_TEMP/certs"; mkdir -p "$W"
           n=0
           for part in $(echo "$MAC_CERTS_P12" | tr -d ' \r\n' | tr ',' ' '); do
             n=$((n+1))
-            echo "$part" | base64 --decode > "$RUNNER_TEMP/certs$n.p12"
-            security import "$RUNNER_TEMP/certs$n.p12" -k "$KC" -P "$MAC_CERTS_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/productsign
+            echo "$part" | base64 --decode > "$W/in$n.p12"
+            "$OPENSSL" pkcs12 -in "$W/in$n.p12" -nodes $LEGACY -passin env:MAC_CERTS_PASSWORD -out "$W/all$n.pem"
+            awk -v d="$W" -v n="$n" '/-----BEGIN /{i++; f=sprintf("%s/p%s-%02d.pem", d, n, i)} f{print > f} /-----END /{close(f); f=""}' "$W/all$n.pem"
           done
+          for f in "$W"/p*.pem; do
+            if grep -q 'PRIVATE KEY' "$f"; then
+              "$OPENSSL" rsa -in "$f" -out "$f.rsa" $TRAD
+              security import "$f.rsa" -k "$KC" -t priv -f openssl -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/productsign
+            else
+              security import "$f" -k "$KC" -t cert -f openssl
+            fi
+          done
+          rm -rf "$W"
           # Developer ID G2 intermediate, so codesign/productbuild can build the full chain
           curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer \
             && security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$KC" || echo "G2 intermediate already present or not downloadable"
