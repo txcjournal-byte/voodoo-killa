@@ -46,8 +46,9 @@ Když Apple notarizaci odmítne, build selže a v logu je důvod.
 >
 > **Bez Macu (Windows/Linux):** klíč a CSR lze vytvořit přes `openssl req -new -newkey rsa:2048 -nodes`,
 > CSR nahrát na developer.apple.com → Certificates → Developer ID Application / Installer (G2 Sub-CA),
-> a z `.cer` + klíčů složit jeden `.p12` s oběma identitami (legacy šifrování 3DES/SHA1, které `security import` přijme),
-> např. `openssl pkcs12 -export -legacy …` pro každou identitu a pak sloučit `keytool -J-Dkeystore.pkcs12.legacy -importkeystore`.
+> a pro každou identitu složit vlastní `.p12` (`openssl pkcs12 -export -legacy …`, stejné heslo).
+> Do `MAC_CERTS_P12` pak dej oba base64 řetězce oddělené čárkou (`base64(app.p12),base64(installer.p12)`) –
+> `security import` z ručně sloučeného `.p12` načte jen první identitu.
 
 ## Krok 2 – Windows (volitelné)
 
